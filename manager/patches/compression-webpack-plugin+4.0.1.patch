@@ -1,0 +1,11 @@
+--- a/node_modules/compression-webpack-plugin/dist/index.js
++++ b/node_modules/compression-webpack-plugin/dist/index.js
+@@ -160,7 +160,7 @@
+         filename: assetName,
+         'compression-webpack-plugin': _package.default.version,
+         'compression-webpack-plugin-options': this.options,
+-        contentHash: _crypto.default.createHash('md4').update(input).digest('hex'),
++        contentHash: _crypto.default.createHash('sha256').update(input).digest('hex'),
+         ...task.cacheKeys
+       };
+     } else {
