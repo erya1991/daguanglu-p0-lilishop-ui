@@ -2,6 +2,7 @@ const path = require("path");
 const configs = require('./src/config')
 const CompressionPlugin = require("compression-webpack-plugin");
 const UglifyJsPlugin = require("uglifyjs-webpack-plugin");
+const localDevelopment = require("./src/config/local-development.cjs");
 const resolve = dir => {
   return path.join(__dirname, dir);
 };
@@ -77,7 +78,18 @@ module.exports = {
     }
   },
   devServer: {
-    port: configs.port
+    port: configs.port,
+    ...(localDevelopment.enabled ? {
+      host: '127.0.0.1',
+      disableHostCheck: false,
+      headers: {
+        'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' ws://127.0.0.1:10003; object-src 'none'; base-uri 'self'; form-action 'self'"
+      },
+      proxy: {
+        '/api/manager': {target: localDevelopment.target, changeOrigin: false, pathRewrite: {'^/api': ''}},
+        '/files': {target: localDevelopment.target, changeOrigin: false}
+      }
+    } : {}),
   },
 
   // 打包时不生成.map文件 避免看到源码

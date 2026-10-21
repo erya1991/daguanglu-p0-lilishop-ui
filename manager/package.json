@@ -5,10 +5,10 @@
   "description": "lilishop-ui",
   "author": "lili-platform",
   "scripts": {
-    "serve": "vue-cli-service serve",
+    "serve": "node scripts/serve-local.cjs",
     "prebuild": "node scripts/apply-compression-hash-fix.cjs",
     "build": "vue-cli-service build",
-    "dev": "vue-cli-service serve"
+    "dev": "node scripts/serve-local.cjs"
   },
   "engines": {
     "node": ">=14"

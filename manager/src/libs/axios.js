@@ -6,17 +6,10 @@ import Cookies from "js-cookie";
 import { handleRefreshToken } from "../api/index";
 import {v4 as uuidv4} from 'uuid';
 
-// 统一请求路径前缀
-export const commonUrl =
-  process.env.NODE_ENV === "development"
-    ? BASE.API_DEV.common
-    : BASE.API_PROD.common;
-export const managerUrl =
-  (process.env.NODE_ENV === "development"
-    ? BASE.API_DEV.manager
-    : BASE.API_PROD.manager) + BASE.PREFIX;
-// 文件上传接口
-export const uploadFile = commonUrl + "/common/common/upload/file";
+import localDevelopment from "@/config/local-development.cjs";
+
+import {commonUrl, managerUrl, commonApiPath, uploadFile} from "./api-address";
+export {commonUrl, managerUrl, commonApiPath, uploadFile};
 
 
 const service = axios.create({
@@ -27,6 +20,13 @@ var isRefreshToken = 0;
 const refreshToken = getTokenDebounce();
 service.interceptors.request.use(
   config => {
+    if (localDevelopment.enabled && !localDevelopment.allowedRequest(config)) {
+      return Promise.reject(new Error('Local development request target is not approved'));
+    }
+    // Axios joins root-relative URLs to baseURL; retain the Manager prefix exactly once.
+    if (localDevelopment.enabled && config.url.startsWith(managerUrl + '/')) {
+      config.url = config.url.slice(managerUrl.length);
+    }
     if (config.method == "get") {
       config.params = {
         _t: Date.parse(new Date()) / 1000,
@@ -55,6 +55,8 @@ service.interceptors.response.use(
     if (!data.success && data.message) {
       Message.error(data.message);
     }
+    // Permission rejection is a real result, not a successful operation or expired session.
+    if (localDevelopment.enabled && data.code !== 20004 && data.code !== 401) return data;
     switch (data.code) {
       case 400:
         if (data.message !== null) {

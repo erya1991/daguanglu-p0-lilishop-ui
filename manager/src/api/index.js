@@ -9,20 +9,22 @@ import {
   putRequestWithNoForm,
   postRequestWithNoTokenData,
   postRequestWithNoForm,
-  managerUrl
+  managerUrl, commonUrl
 } from "@/libs/axios";
 
 
-let commonUrl = (process.env.NODE_ENV === 'development' ? BASE.API_DEV.common : BASE.API_PROD.common)
+import {commonApiPath} from "@/libs/api-address";
+
+// Common paths are mapped individually; no official API fallback in development.
 
 // 文件上传接口
-export const uploadFile = commonUrl+ "/common/common/upload/file";
+export const uploadFile = commonApiPath('/upload/file');
 // Websocket
 export const ws = managerUrl + "/ws";
 
 //获取所有city
 export const getAllCity = (params) => {
-  return getRequest(commonUrl + '/common/common/region/allCity', params)
+  return getRequest(commonApiPath('/region/allCity'), params)
 }
 
 

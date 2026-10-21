@@ -15,6 +15,7 @@ import i18n from '@/locale'
 import {getRequest, postRequest, putRequest, deleteRequest, importRequest, uploadFileRequest} from '@/libs/axios'
 import {setStore, getStore, removeStore} from '@/libs/storage'
 import util from '@/libs/util'
+import localDevelopment from '@/config/local-development.cjs'
 
 import * as filters from '@/utils/filters' // global filter
 import liliDialog from '@/components/lili-dialog'
@@ -39,6 +40,10 @@ Vue.config.productionTip = false
 const PC_URL = BASE.PC_URL; // 跳转买家端地址 pc端
 const WAP_URL = BASE.WAP_URL; // 跳转买家端地址 wap端
 Vue.prototype.linkTo = function (goodsId, skuId) {
+  if (localDevelopment.enabled) {
+    ViewUI.Message.info('本地联调未接入买家商品页面，请使用管理端查看详情');
+    return;
+  }
   // 跳转买家端商品
   let src;
   if (skuId) {
@@ -50,6 +55,8 @@ Vue.prototype.linkTo = function (goodsId, skuId) {
   window.open(src, "_blank");
 };
 Vue.prototype.wapLinkTo = function (goodsId, skuId) {
+  if (localDevelopment.enabled) return '';
+
   // app端二维码
   if (skuId) {
     return `${WAP_URL}/pages/product/goods?id=${skuId}&goodsId=${goodsId}`;

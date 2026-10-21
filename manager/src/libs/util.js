@@ -2,6 +2,7 @@ import { getCurrentPermissionList } from "@/api/index";
 import lazyLoading from "./lazyLoading.js";
 
 import Cookies from "js-cookie";
+import localDevelopment from "@/config/local-development.cjs";
 
 let util = {};
 
@@ -107,6 +108,19 @@ util.initRouter = function(vm) {
   if (!userInfo) {
     // 未登录
     return;
+  }
+  if (localDevelopment.enabled) {
+    // Always derive local entries from the current server role, never cached authorization.
+    return getCurrentPermissionList().then(res => {
+      const menuData = res && res.success ? localDevelopment.localMenus(res.result) : [];
+      vm.$store.commit('updateMenulist', []);
+      vm.$store.commit('setNavList', []);
+      if (!menuData.length) return;
+      window.localStorage.setItem('currNav', menuData[0].name);
+      window.localStorage.setItem('menuData', JSON.stringify(menuData));
+      util.initMenuData(vm, menuData);
+      vm.$store.commit('setAdded', true);
+    });
   }
   if (!vm.$store.state.app.added) {
     // 第一次加载 读取数据
