@@ -1,5 +1,6 @@
 <template>
-  <div class="search">
+  <Stage0ManagerAccess v-if="stage0Mode" kind="roles" />
+  <div v-else class="search">
     <Card>
       <Row class="operation">
         <Button @click="addRole" type="primary">添加角色</Button>
@@ -75,6 +76,8 @@
 </template>
 
 <script>
+import Stage0ManagerAccess from '@/views/sys/Stage0ManagerAccess.vue';
+import {stage0ManagerEnabled} from '@/libs/manager-access';
 import {
   getRoleList,
   getAllPermissionList,
@@ -88,8 +91,10 @@ import {
 import util from "@/libs/util.js";
 export default {
   name: "role-manage",
+  components: {Stage0ManagerAccess},
   data() {
     return {
+      stage0Mode: stage0ManagerEnabled,
       superModelLoading: false, //保存权限弹出选择权限保存
       selectIsSuperModel: false, //保存权限弹出选择权限
       rolePermsWay: [], //查询角色权限集合
@@ -719,6 +724,7 @@ export default {
     },
   },
   mounted() {
+    if (this.stage0Mode) return;
     this.init();
   },
 };

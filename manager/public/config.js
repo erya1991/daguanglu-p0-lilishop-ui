@@ -1,4 +1,6 @@
 var BASE = {
+  // Explicit opt-in; PREP keeps its existing protocol until separately configured.
+  stage0ManagerSessionEnabled: false,
   /**
    * @description api请求基础路径
    */

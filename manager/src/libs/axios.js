@@ -2,8 +2,9 @@ import axios from "axios";
 import { getStore, setStore } from "./storage.js";
 import { router } from "../router/index";
 import { Message } from "view-design";
-import Cookies from "js-cookie";
 import { handleRefreshToken } from "../api/index";
+import { managerSession } from './manager-session';
+import { failureKind, credentialEndpoint, replayable } from './manager-session-core.cjs';
 import {v4 as uuidv4} from 'uuid';
 
 import localDevelopment from "@/config/local-development.cjs";
@@ -16,8 +17,7 @@ const service = axios.create({
   timeout: 8000,
   baseURL: managerUrl
 });
-var isRefreshToken = 0;
-const refreshToken = getTokenDebounce();
+const stage0ManagerProtocol = typeof BASE !== 'undefined' && BASE.stage0ManagerSessionEnabled === true;
 service.interceptors.request.use(
   config => {
     if (localDevelopment.enabled && !localDevelopment.allowedRequest(config)) {
@@ -39,6 +39,13 @@ service.interceptors.request.use(
       setStore('uuid', uuid);
     }
     config.headers["uuid"] = uuid;
+    if (!credentialEndpoint(config.url) && config.headers.accessToken) {
+      const source = managerSession.snapshot();
+      if (source.accessToken !== config.headers.accessToken) {
+        return Promise.reject(new Error('Manager session changed before request'));
+      }
+      config.__managerSession = source;
+    }
     return config;
   },
   err => {
@@ -47,131 +54,56 @@ service.interceptors.request.use(
   }
 );
 
-// http response 拦截器
+function redirectIfLoggedOut() {
+  const current = managerSession.snapshot();
+  if (!current.accessToken && !current.refreshToken && router.history.current.name !== 'login') {
+    router.push('/login');
+  }
+}
+
+async function recoverRead(config) {
+  if (!config || credentialEndpoint(config.url) || !config.__managerSession) return false;
+  if (config.__managerRetried || !replayable(config.method)) {
+    managerSession.expire(config.__managerSession);
+    redirectIfLoggedOut();
+    return false;
+  }
+  const recovered = await managerSession.recover(config.__managerSession, handleRefreshToken);
+  if (!recovered || !managerSession.sameSession(config.__managerSession)) {
+    redirectIfLoggedOut();
+    return false;
+  }
+  return true;
+}
+
+function retryRead(config) {
+  return service({...config, __managerRetried: true, headers: {
+    ...config.headers, accessToken: managerSession.snapshot().accessToken
+  }});
+}
+
+// Business rejection is never converted to a successful write or a refresh.
 service.interceptors.response.use(
-  response => {
+  async response => {
     const data = response.data;
-    // 根据返回的code值来做不同的处理(和后端约定)
-    if (!data.success && data.message) {
-      Message.error(data.message);
+    if (failureKind(response.status, data, stage0ManagerProtocol) === 'expired') {
+      if (await recoverRead(response.config)) return retryRead(response.config);
     }
-    // Permission rejection is a real result, not a successful operation or expired session.
-    if (localDevelopment.enabled && data.code !== 20004 && data.code !== 401) return data;
-    switch (data.code) {
-      case 400:
-        if (data.message !== null) {
-          Message.error(data.message);
-        } else {
-          Message.error("系统异常");
-        }
-        break;
-      case 20004:
-      case 401:
-        // 未登录 清除已登录状态
-        Cookies.set("userInfoManager", "");
-        setStore("accessToken", "");
-        if (router.history.current.name != "login") {
-          if (data.message !== null) {
-            Message.error(data.message);
-          } else {
-            Message.error("未知错误，请重新登录");
-          }
-          router.push("/login");
-        }
-        return data;
-        break;
-      case 500:
-        // 系统异常
-        if (data.message !== null) {
-          Message.error(data.message);
-        } else {
-          Message.error("系统异常");
-        }
-        break;
-      default:
-        return data;
-    }
+    if (data && data.success === false && data.message) Message.error(data.message);
+    return data;
   },
   async error => {
-    // 返回状态码不为200时候的错误处理
     if (error.response) {
-      if (error.response.status === 401) {
-        // 这种情况一般调到登录页
-      } else if (error.response.status === 404) {
-        // 避免刷新token报错
-      } else if (error.response.status === 403 || error.response.data.code === 20004) {
-        isRefreshToken++;
-        if (isRefreshToken === 1) {
-          const getTokenRes = await refreshToken();
-          if (getTokenRes === "success") {
-            // 刷新token
-            if (isRefreshToken === 1) {
-              error.response.config.headers.accessToken = getStore(
-                "accessToken"
-              );
-              return service(error.response.config);
-            } else {
-              router.go(0);
-            }
-          } else {
-            Cookies.set("userInfoManager", "");
-            router.push("/login");
-          }
-          isRefreshToken = 0;
-        }
-      } else {
-        // 其他错误处理
-        Message.error(error.response.data.message);
+      const {status, data} = error.response;
+      const config = error.config || error.response.config;
+      if (failureKind(status, data, stage0ManagerProtocol) === 'expired' && await recoverRead(config)) {
+        return retryRead(config);
       }
+      if (data && data.message) Message.error(data.message);
     }
-    /* router.push("/login") */
-    return Promise.resolve(error);
+    return Promise.reject(error);
   }
 );
-
-// 防抖闭包来一波
-function getTokenDebounce() {
-  let lock = false;
-  let success = false;
-  return function() {
-    if (!lock) {
-      lock = true;
-      let oldRefreshToken = getStore("refreshToken");
-      handleRefreshToken(oldRefreshToken)
-        .then(res => {
-          if (res.success) {
-            let { accessToken, refreshToken } = res.result;
-            setStore("accessToken", accessToken);
-            setStore("refreshToken", refreshToken);
-
-            success = true;
-            lock = false;
-          } else {
-            success = false;
-            lock = false;
-            router.push("/login");
-          }
-        })
-        .catch(err => {
-          success = false;
-          lock = false;
-        });
-    }
-    return new Promise(resolve => {
-      // 一直看lock,直到请求失败或者成功
-      const timer = setInterval(() => {
-        if (!lock) {
-          clearInterval(timer);
-          if (success) {
-            resolve("success");
-          } else {
-            resolve("fail");
-          }
-        }
-      }, 500); // 轮询时间间隔
-    });
-  };
-}
 
 export const getRequest = (url, params, resBlob) => {
   let accessToken = getStore("accessToken");
@@ -360,12 +292,13 @@ export const postRequestWithNoToken = (url, params) => {
  * @param {*} url
  * @param {*} params
  */
-export const postRequestWithNoTokenData = (url, params) => {
+export const postRequestWithNoTokenData = (url, params, headers) => {
   return service({
     method: "post",
     url: `${url}`,
     headers: {
-      "Content-Type": "application/x-www-form-urlencoded"
+      "Content-Type": "application/x-www-form-urlencoded",
+      ...headers
     },
     data: params
   });

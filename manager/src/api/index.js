@@ -14,6 +14,7 @@ import {
 
 
 import {commonApiPath} from "@/libs/api-address";
+import {managerSession} from '@/libs/manager-session';
 
 // Common paths are mapped individually; no official API fallback in development.
 
@@ -50,18 +51,31 @@ export const getNoticePage = (params) => {
 
 // 登陆
 export const login = (params) => {
-  return postRequestWithNoTokenData("/passport/user/login", params);
+  const stage0 = typeof BASE !== 'undefined' && BASE.stage0ManagerSessionEnabled === true;
+  return postRequestWithNoTokenData("/passport/user/login", params,
+    stage0 ? {'X-Manager-Session-Protocol': 'STAGE0_SESSION'} : undefined);
 };
 
 // 登出
 export const logout = () => {
-  return postRequest("/passport/user/logout");
+  const accessToken = managerSession.snapshot().accessToken;
+  // Invalidate before awaiting HTTP so a pending refresh cannot revive logout.
+  managerSession.invalidate();
+  return postRequest("/passport/user/logout", {}, {accessToken});
 };
 
 // 刷新token
 export const handleRefreshToken = (token) => {
+  if (typeof BASE !== 'undefined' && BASE.stage0ManagerSessionEnabled === true) {
+    return postRequestWithNoForm('/passport/user/refresh', {refreshToken: token});
+  }
   return getRequestWithNoToken(`/passport/user/refresh/${token}`);
 };
+// Narrow Stage 0 payloads never reuse the broad legacy AdminUser DTO.
+export const stage0UserRoles = id => getRequest(`/permission/userRole/${encodeURIComponent(id)}`);
+export const stage0SetUserRoles = (id, roleIds) => putRequestWithNoForm(`/permission/userRole/${encodeURIComponent(id)}`, {roleIds});
+export const stage0SetRoleMenus = (id, menuIds) => postRequestWithNoForm(`/permission/roleMenu/${encodeURIComponent(id)}`, {menuIds});
+export const stage0SetUserStatus = (id, status) => putRequest(`/passport/user/enable/${encodeURIComponent(id)}?status=${status}`, undefined, {'Content-Type': 'application/json'});
 // 获取用户登录信息
 export const userInfo = (params) => {
   return getRequest("/passport/user/info", params);

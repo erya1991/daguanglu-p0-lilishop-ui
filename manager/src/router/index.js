@@ -4,6 +4,7 @@ import Util from '../libs/util';
 import VueRouter from 'vue-router';
 import Cookies from 'js-cookie';
 import {routers} from './router';
+import {managerAccess, stage0ManagerEnabled} from '@/libs/manager-access';
 
 Vue.use(VueRouter);
 
@@ -23,11 +24,19 @@ VueRouter.prototype.push = function push(location) {
 
 export const router = new VueRouter(RouterConfig);
 
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   ViewUI.LoadingBar.start();
   Util.title(to.meta.title);
 
   const name = to.name;
+
+  if (stage0ManagerEnabled && Cookies.get('userInfoManager') && name !== 'login' && name !== 'error-403') {
+    const verified = await managerAccess.refresh();
+    if (!verified || !managerAccess.canRoute(to)) {
+      next({name: 'error-403', replace: true});
+      return;
+    }
+  }
 
   if (!Cookies.get('userInfoManager') && name !== 'login') {
     // 判断是否已经登录且前往的页面不是登录页

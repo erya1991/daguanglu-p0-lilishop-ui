@@ -1,5 +1,6 @@
 <template>
-  <div class="search">
+  <Stage0ManagerAccess v-if="stage0Mode" kind="users" />
+  <div v-else class="search">
     <Card>
       <Form ref="searchForm" :model="searchForm" inline :label-width="70" class="search-form">
         <Form-item label="用户名">
@@ -104,6 +105,8 @@
 </template>
 
 <script>
+import Stage0ManagerAccess from '@/views/sys/Stage0ManagerAccess.vue';
+import {stage0ManagerEnabled} from '@/libs/manager-access';
 import {
   getUserListData,
   getAllRoleList,
@@ -121,12 +124,14 @@ import uploadPicInput from "@/components/lili/upload-pic-input";
 export default {
   name: "user-manage",
   components: {
+    Stage0ManagerAccess,
     departmentChoose,
     departmentTreeChoose,
     uploadPicInput,
   },
   data() {
     return {
+      stage0Mode: stage0ManagerEnabled,
       loading: true, // 加载状态
       selectCount: 0, // 已选数量
       selectList: [], // 已选数据列表
@@ -627,6 +632,7 @@ export default {
     }
   },
   mounted() {
+    if (this.stage0Mode) return;
     this.init();
     this.getRoleList();
   }

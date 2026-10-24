@@ -1,5 +1,6 @@
 <template>
-  <div class="search">
+  <Stage0ManagerAccess v-if="stage0Mode" kind="menus" />
+  <div v-else class="search">
     <Card>
       <!-- 筛选项和操作按钮 -->
       <Row class="operation">
@@ -186,6 +187,8 @@
 </template>
 
 <script>
+import Stage0ManagerAccess from '@/views/sys/Stage0ManagerAccess.vue';
+import {stage0ManagerEnabled} from '@/libs/manager-access';
 import {
   getAllPermissionList,
   addPermission,
@@ -197,8 +200,10 @@ import util from "@/libs/util.js";
 import Cookies from "js-cookie";
 export default {
   name: "menu-manage",
+  components: {Stage0ManagerAccess},
   data() {
     return {
+      stage0Mode: stage0ManagerEnabled,
       loading: true, // 加载状态
       strict: true, // 级联 单选
       maxHeight: "500px", // 最大高度
@@ -557,6 +562,7 @@ export default {
     },
   },
   mounted() {
+    if (this.stage0Mode) return;
     // 计算高度
     let height = document.documentElement.clientHeight;
     this.maxHeight = Number(height - 287) + "px";

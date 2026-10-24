@@ -3,6 +3,8 @@ import lazyLoading from "./lazyLoading.js";
 
 import Cookies from "js-cookie";
 import localDevelopment from "@/config/local-development.cjs";
+import {managerSession} from './manager-session';
+import {managerAccess, stage0ManagerEnabled} from './manager-access';
 
 let util = {};
 
@@ -109,9 +111,30 @@ util.initRouter = function(vm) {
     // 未登录
     return;
   }
+  const source = managerSession.snapshot();
+  if (stage0ManagerEnabled) {
+    return managerAccess.refresh().then(ok => {
+      if (!managerSession.sameSession(source)) return false;
+      vm.$store.commit('updateMenulist', []);
+      vm.$store.commit('setNavList', []);
+      if (!ok) return false;
+      const menuData = managerAccess.state.menus;
+      const stage0Routes = [];
+      util.initAllMenuData(stage0Routes, menuData);
+      vm.$store.commit('updateAppRouter', stage0Routes.filter(item => item.children && item.children.length));
+      window.localStorage.removeItem('menuData');
+      if (menuData.length) {
+        window.localStorage.setItem('currNav', menuData[0].name);
+        util.initMenuData(vm, menuData);
+      }
+      vm.$store.commit('setAdded', true);
+      return true;
+    });
+  }
   if (localDevelopment.enabled) {
     // Always derive local entries from the current server role, never cached authorization.
     return getCurrentPermissionList().then(res => {
+      if (!managerSession.sameSession(source)) return;
       const menuData = res && res.success ? localDevelopment.localMenus(res.result) : [];
       vm.$store.commit('updateMenulist', []);
       vm.$store.commit('setNavList', []);
@@ -126,6 +149,7 @@ util.initRouter = function(vm) {
     // 第一次加载 读取数据
     // 加载菜单
     getCurrentPermissionList().then(res => {
+      if (!managerSession.sameSession(source)) return;
       if (!res.success) return false;
       let menuData = res.result;
 
@@ -262,6 +286,7 @@ util.initRouterNode = function(routers, data) {
     // 给页面添加标题、父级菜单name（方便左侧菜单选中）
     meta.title = menu.title ? menu.title + " - 运营后台" : null;
     meta.firstRouterName = item.firstRouterName;
+    if (stage0ManagerEnabled) meta.stage0MenuId = item.id;
     menu.meta = meta;
 
     routers.push(menu);

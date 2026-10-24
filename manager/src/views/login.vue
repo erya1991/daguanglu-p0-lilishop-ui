@@ -69,6 +69,8 @@ import Footer from "@/views/main-parts/footer";
 import LangSwitch from "@/views/main-parts/lang-switch";
 import util from "@/libs/util.js";
 import verify from "@/components/verify";
+import {managerSession} from '@/libs/manager-session';
+import {managerAccess, stage0ManagerEnabled} from '@/libs/manager-access';
 
 export default {
   components: {
@@ -107,25 +109,37 @@ export default {
     };
   },
   methods: {
-    afterLogin(res) {
-      // 登录成功后处理
-      let accessToken = res.result.accessToken;
-      let refreshToken = res.result.refreshToken;
-      this.setStore("accessToken", accessToken);
-      this.setStore("refreshToken", refreshToken);
+    afterLogin(source) {
       // 获取用户信息
-      userInfo().then((res) => {
+      return userInfo().then((res) => {
+        if (!managerSession.sameSession(source)) return;
         if (res.success) {
+          if (stage0ManagerEnabled && (res.result.sessionProtocol !== 'STAGE0_SESSION' || !res.result.stage0)) {
+            managerSession.expire(source);
+            this.$Message.error('Manager协议或角色配置未就绪');
+            this.loading = false;
+            return;
+          }
           // 加载菜单
           Cookies.set("userInfoManager", JSON.stringify(res.result));
           this.$store.commit("setAvatarPath", res.result.avatar);
-          util.initRouter(this);
-          this.$router.push({
-            name: "home_index",
+          Promise.resolve(util.initRouter(this)).then(ok => {
+            if (!managerSession.sameSession(source)) return;
+            if (stage0ManagerEnabled && !ok) {
+              managerSession.expire(source);
+              this.$Message.error('当前权限读取失败，请重新登录');
+              this.loading = false;
+              return;
+            }
+            this.$router.push({name: 'home_index'});
           });
         } else {
+          managerSession.expire(source);
           this.loading = false;
         }
+      }).catch(() => {
+        if (managerSession.sameSession(source)) managerSession.expire(source);
+        this.loading = false;
       });
     },
     submitLogin() {
@@ -141,15 +155,21 @@ export default {
       if (!con.status) return;
 
       this.loading = true;
+      const loginAttempt = managerSession.beginLogin();
+      managerAccess.clear();
+      this.$store.commit('setAdded', false);
+      this.$store.commit('updateMenulist', []);
+      this.$store.commit('setNavList', []);
 
       let fd = new FormData();
       fd.append("username", this.form.username);
       fd.append("password", this.md5(this.form.password));
       login(fd)
         .then((res) => {
-          if (res && res.success) {
-            this.afterLogin(res);
+          if (res && res.success && managerSession.acceptLogin(loginAttempt, res.result)) {
+            this.afterLogin(managerSession.snapshot());
           } else {
+            if (res && res.success) this.$Message.error('Manager登录协议配置不一致');
             this.loading = false;
           }
         })

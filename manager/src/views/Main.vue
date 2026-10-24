@@ -54,7 +54,7 @@
                     <DropdownItem name="personalCenter">{{
                       $t("userCenter")
                     }}</DropdownItem>
-                    <DropdownItem name="changePass">{{
+                    <DropdownItem v-if="!stage0Mode" name="changePass">{{
                       $t("changePass")
                     }}</DropdownItem>
                     <DropdownItem name="loginOut" divided>{{
@@ -75,7 +75,11 @@
     <div class="single-page-con"  :style="{ 'top': setting.isUseTabsRouter ? '100px' : '60px', height: setting.isUseTabsRouter ? 'calc(100% - 110px)' : 'calc(100% - 70px)' }">
       <div class="single-page">
         <!-- <keep-alive :include="cachePage"> -->
-        <router-view></router-view>
+        <Card v-if="stage0Mode && $route.name === 'home_index'">
+          <p>本人账号：{{ authority.info ? authority.info.username : '等待权威读取' }}</p>
+          <p>当前角色：{{ authority.info ? (authority.info.stage0.role === 'B' ? '权限维护管理员' : '受限管理员') : '未确认' }}</p>
+        </Card>
+        <router-view v-else></router-view>
         <!-- </keep-alive> -->
       </div>
     </div>
@@ -96,6 +100,8 @@ import Cookies from "js-cookie";
 import util from "@/libs/util.js";
 import { getNoticePage, logout } from "@/api/index";
 import { getBaseSite } from "@/api/common";
+import {managerSession} from '@/libs/manager-session';
+import {managerAccess, stage0ManagerEnabled} from '@/libs/manager-access';
 
 var client;
 const config = require("@/config/index.js");
@@ -109,6 +115,8 @@ export default {
   },
   data() {
     return {
+      stage0Mode: stage0ManagerEnabled,
+      authority: managerAccess.state,
       config,
       sliceNum: 5, // 展示nav数量
       userInfo: "", // 用户信息
@@ -160,7 +168,7 @@ export default {
       document.getElementsByTagName("head")[0].appendChild(link);
       window.document.title = localStorage.getItem("title") + " - 运营后台";
       // 读取未读消息数
-      getNoticePage({}).then((res) => {
+      if (!this.stage0Mode) getNoticePage({}).then((res) => {
         if (res.success) {
           this.tipsMessage = res.result;
 
@@ -173,6 +181,10 @@ export default {
     handleClickUserDropdown(name) {
       //个人中心
       if (name === "personalCenter") {
+        if (this.stage0Mode) {
+          this.$router.push({name: 'home_index'});
+          return;
+        }
         util.openNewPage(this, "personal-center");
         this.$router.push({
           name: "personal-center",
@@ -187,12 +199,18 @@ export default {
       }
       // 退出登录
       else if (name === "loginOut") {
-        logout().then((res) => {
-          this.$store.commit("logout", this);
-          this.$store.commit("setAdded", false);
-          this.setStore("accessToken", "");
-          this.setStore("refreshToken", "");
-          this.$router.push({ path: "/login" });
+        const pending = logout();
+        managerAccess.clear();
+        const ended = managerSession.snapshot();
+        this.$store.commit("setAdded", false);
+        this.$store.commit('updateMenulist', []);
+        this.$store.commit('setNavList', []);
+        this.$router.push({ path: "/login" });
+        pending.catch(() => {
+          // A delayed logout response must not clear a subsequently signed-in user.
+          if (managerSession.snapshot().generation === ended.generation) {
+            this.$Message.warning('本地已退出，服务端退出结果未确认');
+          }
         });
       }
     },
