@@ -82,7 +82,9 @@ export default {
           if (!Array.isArray(tree)) throw new Error('菜单响应不完整');
           if (!managerSession.sameSession(source) || !this.allowed) return;
           const scope = new Set([...this.authority.info.stage0.readMenuIds, ...this.authority.info.stage0.maintenanceMenuIds]);
-          this.rows = flatten(tree).filter(row => scope.has(row.id));
+          // This is a flat display table. Keep the original hierarchy for the
+          // W3 Tree dialog, but never let Table interpret these rows as a tree.
+          this.rows = flatten(tree).filter(row => scope.has(row.id)).map(({id, title, permission}) => ({id, title, permission}));
         } else {
           const response = required(await (this.kind === 'users' ? getUserListData : getRoleList)({pageNumber: this.page, pageSize: 20}));
           if (!response || !Array.isArray(response.records)) throw new Error('列表响应不完整');

@@ -6,6 +6,7 @@ import {
 } from '@/router/index';
 import Util from '@/libs/util';
 import Vue from 'vue';
+import {stage0ManagerEnabled} from '@/libs/manager-access';
 
 const app = {
   state: {
@@ -31,6 +32,14 @@ const app = {
     dontCache: ['test', 'test']
   },
   mutations: {
+    replaceStage0AppRouter(state, routes) {
+      if (!stage0ManagerEnabled) return;
+      router.replaceStage0Routes(routes);
+      state.routers = [otherRouter, ...routes];
+      state.tagsList = [...otherRouter.children];
+      state.cachePage = [];
+      state.pageOpenedList = [otherRouter.children[0]];
+    },
     // 动态添加主界面路由，需要缓存
     updateAppRouter(state, routes) {
       state.routers.push(...routes);
@@ -53,7 +62,8 @@ const app = {
       state.currNavTitle = v;
     },
     setTagsList(state, list) {
-      state.tagsList.push(...list);
+      if (stage0ManagerEnabled) state.tagsList = [...list];
+      else state.tagsList.push(...list);
     },
     updateMenulist(state, routes) {
       state.menuList = routes;

@@ -7,6 +7,9 @@ import {managerSession} from './manager-session';
 import {managerAccess, stage0ManagerEnabled} from './manager-access';
 
 let util = {};
+let stage0Flight = null;
+let stage0RoutesGeneration = null;
+let stage0RoutesSignature = null;
 
 util.title = function(title) {
   title = title || "运营后台";
@@ -45,7 +48,7 @@ util.openNewPage = function(vm, name, argu, query) {
   }
   if (!tagHasOpened) {
     let tag = vm.$store.state.app.tagsList.filter(item => {
-      if (item.children) {
+      if (item.children && item.children.length > 0) {
         return name == item.children[0].name;
       } else {
         return name == item.name;
@@ -53,7 +56,7 @@ util.openNewPage = function(vm, name, argu, query) {
     });
     tag = tag[0];
     if (tag) {
-      tag = tag.children ? tag.children[0] : tag;
+      tag = tag.children && tag.children.length > 0 ? tag.children[0] : tag;
       if (argu) {
         tag.argu = argu;
       }
@@ -113,15 +116,28 @@ util.initRouter = function(vm) {
   }
   const source = managerSession.snapshot();
   if (stage0ManagerEnabled) {
-    return managerAccess.refresh().then(ok => {
+    if (stage0Flight && managerSession.sameSession(stage0Flight.source)) return stage0Flight.promise;
+    const pending = {source, promise: null};
+    stage0Flight = pending;
+    pending.promise = managerAccess.refresh().then(ok => {
       if (!managerSession.sameSession(source)) return false;
       vm.$store.commit('updateMenulist', []);
       vm.$store.commit('setNavList', []);
-      if (!ok) return false;
+      if (!ok) {
+        vm.$store.commit('replaceStage0AppRouter', []);
+        stage0RoutesGeneration = null;
+        stage0RoutesSignature = null;
+        return false;
+      }
       const menuData = managerAccess.state.menus;
-      const stage0Routes = [];
-      util.initAllMenuData(stage0Routes, menuData);
-      vm.$store.commit('updateAppRouter', stage0Routes.filter(item => item.children && item.children.length));
+      const signature = JSON.stringify(menuData);
+      if (stage0RoutesGeneration !== source.generation || stage0RoutesSignature !== signature) {
+        const stage0Routes = [];
+        util.initAllMenuData(stage0Routes, menuData);
+        vm.$store.commit('replaceStage0AppRouter', stage0Routes.filter(item => item.children && item.children.length));
+        stage0RoutesGeneration = source.generation;
+        stage0RoutesSignature = signature;
+      }
       window.localStorage.removeItem('menuData');
       if (menuData.length) {
         window.localStorage.setItem('currNav', menuData[0].name);
@@ -129,7 +145,10 @@ util.initRouter = function(vm) {
       }
       vm.$store.commit('setAdded', true);
       return true;
+    }).finally(() => {
+      if (stage0Flight === pending) stage0Flight = null;
     });
+    return pending.promise;
   }
   if (localDevelopment.enabled) {
     // Always derive local entries from the current server role, never cached authorization.

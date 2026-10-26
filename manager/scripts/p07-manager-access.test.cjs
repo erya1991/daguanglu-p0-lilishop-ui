@@ -151,7 +151,8 @@ test('actual logout invalidates locally before dispatching old Access', async ()
 async function runActualGuard(p, route) {
   let guard; const decisions = [];
   class Router {
-    constructor() { this.history = {}; }
+    constructor() { this.history = {}; this.app = {}; }
+    match() { return {meta: {}, matched: [{path: '/fixture', name: route.name, meta: {}}], ...route}; }
     push() { return Promise.resolve(); }
     beforeEach(fn) { guard = fn; }
     afterEach() {}
@@ -159,10 +160,11 @@ async function runActualGuard(p, route) {
   const file = path.resolve(__dirname, '../src/router/index.js');
   const source = withoutImports(fs.readFileSync(file, 'utf8')).replace('export const router', 'const router');
   const context = {Vue: {use() {}}, VueRouter: Router, ViewUI: {LoadingBar: {start() {}, finish() {}}},
-    Util: {title() {}, toDefaultPage: (_a, _b, _c, next) => next()}, Cookies: {get: () => 'synthetic-cookie'},
+    Util: {title() {}, initRouter: () => p.refresh(), toDefaultPage: (_a, _b, _c, next) => next()}, Cookies: {get: () => 'synthetic-cookie'},
+    managerSession: {snapshot: () => ({generation: 0}), sameSession: () => true},
     routers: [], managerAccess: p, stage0ManagerEnabled: true, window: {scrollTo() {}}};
   vm.runInNewContext(source, context, {filename: file});
-  await guard({meta: {}, ...route}, {}, value => decisions.push(value));
+  await guard({meta: {}, fullPath: '/fixture', matched: [{path: '/fixture', name: route.name, meta: {}}], ...route}, {}, value => decisions.push(value));
   return decisions;
 }
 test('actual router guard rejects A deep-link to maintenance before page mount', async () => {

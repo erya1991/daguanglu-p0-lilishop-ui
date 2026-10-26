@@ -16,6 +16,7 @@ import {getRequest, postRequest, putRequest, deleteRequest, importRequest, uploa
 import {setStore, getStore, removeStore} from '@/libs/storage'
 import util from '@/libs/util'
 import localDevelopment from '@/config/local-development.cjs'
+import {stage0ManagerEnabled} from '@/libs/manager-access'
 
 import * as filters from '@/utils/filters' // global filter
 import liliDialog from '@/components/lili-dialog'
@@ -112,7 +113,7 @@ new Vue({
   },
   mounted() {
     // 初始化菜单
-    util.initRouter(this);
+    if (!stage0ManagerEnabled) util.initRouter(this);
     this.currentPageName = this.$route.name;
     // 显示打开的页面的列表
     this.$store.commit('setOpenedList');

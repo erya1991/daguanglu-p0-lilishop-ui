@@ -6,8 +6,10 @@
 
 <script>
 import { getCategoryTree } from '@/api/goods.js'
+import { stage0ManagerEnabled } from '@/libs/manager-access'
 export default {
   updated () {
+    if (stage0ManagerEnabled) return;
     if (!localStorage.getItem('category') && this.$route.path !== '/login') {
       getCategoryTree(0).then(res => {
         if (res.success) {

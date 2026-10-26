@@ -22,7 +22,7 @@
           @on-close="closePage"
           @click.native="linkTo(item)"
           :closable="item.name=='home_index'?false:true"
-          :color="item.children?(item.children[0].name==currentPageName?'primary':'default'):(item.name==currentPageName?'primary':'default')"
+          :color="item.children && item.children.length > 0?(item.children[0].name==currentPageName?'primary':'default'):(item.name==currentPageName?'primary':'default')"
            @contextmenu.prevent.native="contextMenu(item, $event)"
         >{{ itemTitle(item) }}</Tag>
       </transition-group>
