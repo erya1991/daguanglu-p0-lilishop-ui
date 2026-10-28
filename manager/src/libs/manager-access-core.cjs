@@ -1,5 +1,6 @@
 'use strict';
 const PROTOCOL = 'STAGE0_SESSION';
+const stage1 = require('./stage1-access-core.cjs');
 const capabilities = new Set(['SELF_READ', 'MENU_SELF_READ', 'PREP_READ', 'USER_READ', 'ROLE_READ',
   'USER_ROLE_READ', 'ROLE_MENU_READ', 'MENU_READ', 'USER_STATUS_WRITE', 'USER_ROLE_WRITE', 'ROLE_MENU_WRITE']);
 const pages = {
@@ -16,7 +17,8 @@ const prepPages = {
 function ids(value) {
   return Array.isArray(value) && value.every(id => typeof id === 'string' && /^[A-Za-z0-9_-]+$/.test(id));
 }
-function normalizeInfo(result) {
+function normalizeInfo(result, stage1Enabled = false) {
+  if (stage1Enabled) return stage1.normalize(result);
   const scope = result && result.stage0;
   if (!result || result.sessionProtocol !== PROTOCOL || !scope || !['A', 'B'].includes(scope.role) ||
       result.isSuper !== false || typeof result.id !== 'string' || !result.id ||
@@ -27,6 +29,7 @@ function normalizeInfo(result) {
     readMenuIds: [...scope.readMenuIds], maintenanceMenuIds: [...scope.maintenanceMenuIds]}};
 }
 function has(info, capability) {
+  if (info && info.stage1) return stage1.has(info, capability);
   return Boolean(info && info.stage0 && info.stage0.capabilities.includes(capability) &&
     (['SELF_READ', 'MENU_SELF_READ', 'PREP_READ'].includes(capability) || info.stage0.role === 'B'));
 }
@@ -37,6 +40,7 @@ function canManageRole(info, id) {
   return Boolean(has(info, 'ROLE_MENU_WRITE') && info.stage0.roleAIds.includes(id));
 }
 function filterMenus(rows, info) {
+  if (info && info.stage1) return stage1.menus(rows, info);
   if (!info || !Array.isArray(rows)) return [];
   const allowed = new Set([...info.stage0.readMenuIds, ...(info.stage0.role === 'B' ? info.stage0.maintenanceMenuIds : [])]);
   function visit(items) {
@@ -58,6 +62,7 @@ function filterMenus(rows, info) {
   return visit(rows);
 }
 function canRoute(info, menus, route) {
+  if (info && info.stage1) return stage1.canRoute(info, menus, route);
   if (!info) return false;
   if (route.name === 'home_index') return has(info, 'SELF_READ');
   const entries = [];
@@ -69,7 +74,7 @@ function canRoute(info, menus, route) {
   return entries.some(row => pages[row.frontRoute] && has(info, pages[row.frontRoute]) &&
     (row.name === route.name || (route.meta && route.meta.stage0MenuId === row.id)));
 }
-function createManagerAccess({fetchInfo, fetchMenus, snapshot, sameSession}) {
+function createManagerAccess({fetchInfo, fetchMenus, snapshot, sameSession, stage1Enabled = false}) {
   const state = {info: null, menus: [], ready: false};
   let requestVersion = 0;
   function clear() { requestVersion++; state.info = null; state.menus = []; state.ready = false; }
@@ -79,7 +84,7 @@ function createManagerAccess({fetchInfo, fetchMenus, snapshot, sameSession}) {
     state.info = null; state.menus = []; state.ready = false;
     try {
       const infoResponse = await fetchInfo();
-      const info = infoResponse && infoResponse.success === true ? normalizeInfo(infoResponse.result) : null;
+      const info = infoResponse && infoResponse.success === true ? normalizeInfo(infoResponse.result, stage1Enabled) : null;
       if (!info || !sameSession(source) || ticket !== requestVersion) return false;
       const menuResponse = await fetchMenus();
       if (!menuResponse || menuResponse.success !== true || !Array.isArray(menuResponse.result) ||

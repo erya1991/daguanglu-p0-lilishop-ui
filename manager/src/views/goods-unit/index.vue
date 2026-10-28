@@ -1,5 +1,5 @@
 <template>
-  <div class="search">
+  <div><Stage1View v-if="stage1Enabled"/><div v-else class="search">
     <Card>
       <Row class="operation">
         <Button @click="add" type="primary">添加</Button>
@@ -48,9 +48,12 @@
       </div>
     </Modal>
   </div>
+  </div>
 </template>
 
 <script>
+import Stage1View from "@/views/p0-stage1/Catalog";
+import {stage1ManagerEnabled} from "@/libs/manager-access";
 import {
   addGoodsUnit,
   getGoodsUnitPage,
@@ -61,9 +64,11 @@ import {
 import {regular} from "@/utils";
 
 export default {
+  components: {Stage1View},
   name: "goods-unit",
   data() {
     return {
+      stage1Enabled: stage1ManagerEnabled,
       loading: true, // 表单加载状态
       modalVisible: false, // 添加或编辑显示
       modalTitle: "", // 添加或编辑标题
@@ -317,6 +322,7 @@ export default {
     }
   },
   mounted() {
+    if (stage1ManagerEnabled) return;
     this.init();
   },
 };

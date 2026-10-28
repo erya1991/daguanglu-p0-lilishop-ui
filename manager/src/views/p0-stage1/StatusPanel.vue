@@ -1,0 +1,3 @@
+<template><div class="s1-status" aria-live="polite"><Alert v-if="error" type="error" show-icon>{{ error }}</Alert><div v-if="pending" class="s1-pending"><p>本次提交结果待确认。请先回查，原请求重试会沿用相同操作标识和内容。</p><Button :loading="busy" @click="$emit('recover')">回查操作</Button><Button :disabled="busy" @click="$emit('retry')">按原请求重试</Button><Button :disabled="busy" @click="$emit('abandon')">核实并关闭未提交请求</Button></div><Spin v-if="loading" fix></Spin></div></template>
+<script>export default {props:{error:String,pending:Boolean,busy:Boolean,loading:Boolean}};</script>
+<style scoped>.s1-status{position:relative}.s1-pending{background:#fff8e6;padding:16px;margin-bottom:16px}.s1-pending button{margin:10px 12px 0 0}</style>

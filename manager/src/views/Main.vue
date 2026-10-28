@@ -77,7 +77,11 @@
         <!-- <keep-alive :include="cachePage"> -->
         <Card v-if="stage0Mode && $route.name === 'home_index'">
           <p>本人账号：{{ authority.info ? authority.info.username : '等待权威读取' }}</p>
-          <p>当前角色：{{ authority.info ? (authority.info.stage0.role === 'B' ? '权限维护管理员' : '受限管理员') : '未确认' }}</p>
+          <template v-if="authority.info && authority.info.stage1">
+            <h3>商城管理</h3><p>根据当前授权，从左侧进入商户准入、合作规则、商品或渠道管理。</p>
+            <p>本地验证模式：{{ authority.info.stage1.mode }}。真实渠道资格以服务端核验结果为准。</p>
+          </template>
+          <p v-else>当前角色：{{ authority.info ? (authority.info.stage0.role === 'B' ? '权限维护管理员' : '受限管理员') : '未确认' }}</p>
         </Card>
         <router-view v-else></router-view>
         <!-- </keep-alive> -->

@@ -1,0 +1,13 @@
+import {getRequest,postRequestWithNoForm,putRequestWithNoForm,importRequest} from '@/libs/axios';
+import {managerSession} from '@/libs/manager-session';
+import {stage1ManagerEnabled,managerAccess} from '@/libs/manager-access';
+import {v4 as uuid} from 'uuid';
+import {Stage1Error,unwrap,createCommands,createUploads} from './stage1-core.cjs';
+export {Stage1Error};
+function path(value){if(!stage1ManagerEnabled||typeof value!=='string'||!/^\/[A-Za-z0-9/-]+$/.test(value)||value.includes('//')||value.includes('..'))throw new Stage1Error('INVALID_OPERATION');return '/p0/s1'+value;}
+function current(source){if(!managerSession.sameSession(source))throw new Stage1Error('STALE_OPERATION');}
+export async function s1Read(url,params){const source=managerSession.snapshot();try{const result=unwrap(await getRequest(path(url),params));current(source);return result;}catch(error){current(source);if(error instanceof Stage1Error)throw error;throw new Stage1Error(error.response&&error.response.data&&error.response.data.code,error.response&&error.response.status);}}
+function commandOptions(scope){const actor=managerAccess.state.info&&managerAccess.state.info.id;const prefix='daguanglu:manager:stage1:'+actor+':'+scope+':';const journal={get:key=>{try{return JSON.parse(localStorage.getItem(prefix+key)||'null')}catch(_){throw new Stage1Error('OPERATION_STORAGE_UNAVAILABLE',503)}},set:(key,value)=>{if(!actor)throw new Stage1Error('SESSION_REJECTED',403);try{localStorage.setItem(prefix+key,JSON.stringify(value))}catch(_){throw new Stage1Error('OPERATION_STORAGE_UNAVAILABLE',503)}},remove:key=>{try{localStorage.removeItem(prefix+key)}catch(_){/* A retained receipt can be queried again. */}}};return {send:(method,url,body)=>(method==='PUT'?putRequestWithNoForm:postRequestWithNoForm)(path(url),body),read:url=>getRequest(path(url)),snapshot:managerSession.snapshot,sameSession:managerSession.sameSession,requestId:()=>uuid(),journal};}
+export function s1Commands(scope){return createCommands(commandOptions(scope));}
+export function s1Uploads(scope){return createUploads({...commandOptions('files:'+scope),upload:(file,metadata)=>{const form=new FormData();form.append('file',file);form.append('metadata',JSON.stringify(metadata));return importRequest(path('/files'),form);}});}
+export async function s1Preview(id){if(!/^[1-9][0-9]{0,18}$/.test(id))throw new Stage1Error('INVALID_OPERATION');const source=managerSession.snapshot();const blob=await getRequest(path('/files/'+id+'/preview'),{},'blob');current(source);if(!(blob instanceof Blob)||!['image/png','image/jpeg','image/webp','application/pdf'].includes(blob.type))throw new Stage1Error('INVALID_RESPONSE');return URL.createObjectURL(blob);}

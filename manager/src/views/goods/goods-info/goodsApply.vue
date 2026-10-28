@@ -1,5 +1,5 @@
 <template>
-  <div class="search">
+  <div><Stage1View v-if="stage1Enabled" review/><div v-else class="search">
     <Card>
       <Form
         ref="searchForm"
@@ -75,16 +75,20 @@
       </Row>
     </Card>
   </div>
+  </div>
 </template>
 
 <script>
+import Stage1View from "@/views/p0-stage1/Goods";
+import {stage1ManagerEnabled} from "@/libs/manager-access";
 import { authGoods, getAuthGoodsListData } from "@/api/goods";
 
 export default {
   name: "goods",
-  components: {},
+  components: { Stage1View,},
   data() {
     return {
+      stage1Enabled: stage1ManagerEnabled,
       id: "", //要操作的id
       loading: true, // 表单加载状态
       searchForm: {
@@ -309,6 +313,7 @@ export default {
     },
   },
   mounted() {
+    if (stage1ManagerEnabled) return;
     this.init();
   },
 };

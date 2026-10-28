@@ -8,6 +8,7 @@
 
 <script>
 import { getBaseSite } from "@/api/common.js";
+import { stage1ManagerEnabled } from '@/libs/manager-access';
 export default {
   data() {
     return {
@@ -16,6 +17,10 @@ export default {
   },
   methods: {
     init() {
+      if (stage1ManagerEnabled) {
+        window.document.title = '大光路商城 Stage1 - 运营后台';
+        return;
+      }
       if (
         !localStorage.getItem("icon") ||
         !localStorage.getItem("title") ||

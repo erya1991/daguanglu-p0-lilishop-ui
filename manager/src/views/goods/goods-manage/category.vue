@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div><Stage1View v-if="stage1Enabled" category/><div v-else>
     <Card>
       <div class="mb_10">
         <Button @click="addParent" icon="md-add">添加一级分类</Button>
@@ -142,8 +142,11 @@
       </Modal>
     </Card>
   </div>
+  </div>
 </template>
 <script>
+import Stage1View from "@/views/p0-stage1/Catalog";
+import {stage1ManagerEnabled} from "@/libs/manager-access";
 import {
 delCategory,
 disableCategory,
@@ -162,11 +165,12 @@ import uploadPicInput from "@/components/lili/upload-pic-input";
 import { regular } from "@/utils";
 export default {
   name: "goods-category",
-  components: {
+  components: { Stage1View,
     uploadPicInput,
   },
   data() {
     return {
+      stage1Enabled: stage1ManagerEnabled,
       recordLevel:[], // 记录当前层级
       submitLoading: false, //加载状态
       categoryList: [], // 分类列表
@@ -544,6 +548,7 @@ export default {
     },
   },
   mounted() {
+    if (stage1ManagerEnabled) return;
     this.init();
   },
 };

@@ -1,5 +1,5 @@
 <template>
-  <div class="search">
+  <div><Stage1View v-if="stage1Enabled"/><div v-else class="search">
     <Card>
       <Form
         ref="searchForm"
@@ -249,9 +249,12 @@
       </div>
     </Modal>
   </div>
+  </div>
 </template>
 
 <script>
+import Stage1View from "@/views/p0-stage1/Goods";
+import {stage1ManagerEnabled} from "@/libs/manager-access";
 import {
   getGoodsListData,
   getGoodsNumerData,
@@ -263,12 +266,13 @@ import {
 } from "@/api/goods";
 import vueQr from "vue-qr";
 export default {
-  components: {
+  components: { Stage1View,
     "vue-qr": vueQr,
   },
   name: "goods",
   data() {
     return {
+      stage1Enabled: stage1ManagerEnabled,
       id: "", //要操作的id
       loading: true, // 表单加载状态
       modalVisible: false, // 添加或编辑显示
@@ -954,6 +958,7 @@ export default {
     }
   },
   mounted() {
+    if (stage1ManagerEnabled) return;
     this.init();
   },
 };

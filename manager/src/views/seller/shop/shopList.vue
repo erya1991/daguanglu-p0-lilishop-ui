@@ -1,5 +1,5 @@
 <template>
-  <div class="search">
+  <div><Stage1View v-if="stage1Enabled"/><div v-else class="search">
     <Card>
       <Form ref="searchForm" :model="searchForm" inline :label-width="70" class="search-form">
         <Form-item label="会员名称" prop="memberName">
@@ -46,9 +46,12 @@
       </Row>
     </Card>
   </div>
+  </div>
 </template>
 
 <script>
+import Stage1View from "@/views/p0-stage1/ApplicationsStores";
+import {stage1ManagerEnabled} from "@/libs/manager-access";
 import {
   getShopListData,
   disableShop,
@@ -56,9 +59,11 @@ import {
   shopAudit,
 } from "@/api/shops";
 export default {
+  components: {Stage1View},
   name: "shop",
   data() {
     return {
+      stage1Enabled: stage1ManagerEnabled,
       loading: true, // 表单加载状态
       searchForm: {
         // 搜索框初始化对象
@@ -426,6 +431,7 @@ export default {
     },
   },
   mounted() {
+    if (stage1ManagerEnabled) return;
     this.init();
   },
 };
