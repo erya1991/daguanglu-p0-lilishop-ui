@@ -35,6 +35,6 @@ function menus(rows, info) {
 function canRoute(info, rows, route) {
   if (!info || !info.stage1) return false;
   if (route.name === 'home_index') return has(info,'SELF_READ');
-  const valid = menus(rows, info);return valid.some(root => root.children.some(group => group.children.some(item => item.name === route.name && route.meta && route.meta.stage0MenuId === item.id)));
+  const valid = menus(rows, info), parent = (require('../router/stage1-details.cjs').parent(route)||require('../router/stage2-ui.cjs').parent(route));return valid.some(root => root.children.some(group => group.children.some(item => item.name === (parent || route.name) && route.meta && route.meta.stage0MenuId === item.id)));
 }
 module.exports = {pages,normalize,has,menus,canRoute};

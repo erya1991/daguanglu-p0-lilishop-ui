@@ -70,7 +70,10 @@ import LangSwitch from "@/views/main-parts/lang-switch";
 import util from "@/libs/util.js";
 import verify from "@/components/verify";
 import {managerSession} from '@/libs/manager-session';
-import {managerAccess, stage0ManagerEnabled} from '@/libs/manager-access';
+import {managerAccess, stage0ManagerEnabled, stage1ManagerEnabled} from '@/libs/manager-access';
+import {normalizeInfo} from '@/libs/manager-access-core.cjs';
+
+const stage1ProfileEnabled = stage1ManagerEnabled && (BASE.stage2Enabled !== true || BASE.stage2WebUiEnabled === true);
 
 export default {
   components: {
@@ -114,7 +117,9 @@ export default {
       return userInfo().then((res) => {
         if (!managerSession.sameSession(source)) return;
         if (res.success) {
-          if (stage0ManagerEnabled && (res.result.sessionProtocol !== 'STAGE0_SESSION' || !res.result.stage0)) {
+          if (stage0ManagerEnabled && (stage1ProfileEnabled
+            ? !normalizeInfo(res.result, true)
+            : (res.result.sessionProtocol !== 'STAGE0_SESSION' || !res.result.stage0))) {
             managerSession.expire(source);
             this.$Message.error('Manager协议或角色配置未就绪');
             this.loading = false;

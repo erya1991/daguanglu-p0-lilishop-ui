@@ -5,6 +5,7 @@ import Cookies from "js-cookie";
 import localDevelopment from "@/config/local-development.cjs";
 import {managerSession} from './manager-session';
 import {managerAccess, stage0ManagerEnabled} from './manager-access';
+const usabilityEnabled = typeof BASE !== 'undefined' && BASE.stage1Enabled === true && BASE.stage2Enabled !== true && BASE.stage1WebUsabilityEnabled === true;
 
 let util = {};
 let stage0Flight = null;
@@ -13,6 +14,7 @@ let stage0RoutesSignature = null;
 
 util.title = function(title) {
   title = title || "运营后台";
+  if (usabilityEnabled && /^(null|undefined)\b/.test(title)) title = "Stage1 商城 - 运营后台";
   window.document.title = title;
 };
 // 判断元素是否存在于数组中
@@ -134,6 +136,12 @@ util.initRouter = function(vm) {
       if (stage0RoutesGeneration !== source.generation || stage0RoutesSignature !== signature) {
         const stage0Routes = [];
         util.initAllMenuData(stage0Routes, menuData);
+        if (typeof BASE !== 'undefined' && BASE.stage2Enabled === true && BASE.stage2WebUiEnabled === true) for (const group of stage0Routes) { const details=require('@/router/stage2-ui.cjs').routes(group.children||[]); for(const detail of details)detail.component=lazyLoading(detail.frontRoute); if(group.children)group.children.push(...details); }
+        if (usabilityEnabled) for (const group of stage0Routes) {
+          const details = require('@/router/stage1-details.cjs').routes(group.children || []);
+          for (const detail of details) detail.component = lazyLoading(detail.frontRoute);
+          if (group.children) group.children.push(...details);
+        }
         vm.$store.commit('replaceStage0AppRouter', stage0Routes.filter(item => item.children && item.children.length));
         stage0RoutesGeneration = source.generation;
         stage0RoutesSignature = signature;
