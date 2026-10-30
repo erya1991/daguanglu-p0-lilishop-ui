@@ -1,0 +1,2 @@
+<template><BusinessSelect :value="value" type="categories" :params="{purpose,targetStore:storeId||undefined}" :disabled="disabled" placeholder="按名称或类目路径搜索" @input="$emit('input',$event)" @selected="$emit('selected',$event)"/></template>
+<script>import BusinessSelect from './BusinessSelect';export default {components:{BusinessSelect},props:{value:String,purpose:{type:String,required:true},storeId:String,disabled:Boolean}};</script>

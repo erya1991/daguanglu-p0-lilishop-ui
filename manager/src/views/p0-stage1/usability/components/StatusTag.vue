@@ -1,0 +1,2 @@
+<template><Tag :color="tone">{{title||status(value)}}</Tag></template>
+<script>import {status} from '../display.cjs';export default {props:{value:[String,Boolean],title:String},computed:{tone(){return ['OPEN','APPROVED','EFFECTIVE','ACTIVE','VERIFIED','VALID','SUCCEEDED','SUCCESS'].includes(this.value)?'green':['REJECTED','FAILED','REVOKED','CLOSED','TERMINATED'].includes(this.value)?'red':['UNKNOWN','SUBMITTED','UNVERIFIED','CHANNEL_PENDING'].includes(this.value)?'orange':'default';}},methods:{status}};</script>

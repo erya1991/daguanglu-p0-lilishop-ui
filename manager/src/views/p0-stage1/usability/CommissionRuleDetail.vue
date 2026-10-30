@@ -1,0 +1,1 @@
+<template><CooperationDetail rule/></template><script>import CooperationDetail from './components/CooperationDetail';import {leaveGuard} from './entry';export default {beforeRouteLeave:leaveGuard,beforeRouteUpdate:leaveGuard,components:{CooperationDetail}};</script>
