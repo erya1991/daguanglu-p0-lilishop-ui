@@ -2,7 +2,7 @@
   <div class="search">
     <Card>
       <Row class="operation padding-row">
-        <Button @click="add" type="primary">添加</Button>
+        <Button :disabled="!$nativeCan('POST','/manager/other/logistics')" @click="add" type="primary">添加</Button>
       </Row>
       <Table
         :loading="loading"
@@ -13,7 +13,7 @@
       >
         <!-- 页面展示 -->
         <template slot="disableSlot" slot-scope="{row}">
-          <i-switch size="large"  :true-value="true" :false-value="false"  :value="row.switch" @on-change="changeSwitch(row)">
+          <i-switch size="large"  :true-value="true" :false-value="false"  :disabled="!$nativeCan('PUT','/manager/other/logistics/'+row.id)" :value="row.switch" @on-change="changeSwitch(row)">
             <span slot="open">开启</span>
             <span slot="close">禁用</span>
           </i-switch>
@@ -64,7 +64,7 @@
       </Form>
       <div slot="footer">
         <Button type="text" @click="modalVisible = false">取消</Button>
-        <Button type="primary" :loading="submitLoading" @click="handleSubmit"
+        <Button type="primary" :loading="submitLoading" :disabled="!$nativeCan(form.id?'PUT':'POST',form.id?'/manager/other/logistics/'+form.id:'/manager/other/logistics')" @click="handleSubmit"
         >提交
         </Button
         >
@@ -147,7 +147,7 @@
                 h(
                   "Button",
                   {
-                    props: {
+                    props: {disabled: !this.$nativeCan('PUT','/manager/other/logistics/'+params.row.id),
                       type: "info",
                       size: "small",
                     },
@@ -165,7 +165,7 @@
                 h(
                   "Button",
                   {
-                    props: {
+                    props: {disabled: !this.$nativeCan('DELETE','/manager/other/logistics/'+params.row.id),
                       type: "error",
                       size: "small",
                     },

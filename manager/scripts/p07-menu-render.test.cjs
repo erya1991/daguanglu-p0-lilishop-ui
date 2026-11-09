@@ -13,6 +13,7 @@ const projection = '.map(({id, title, permission}) => ({id, title, permission}))
 const originalScript = descriptor.script.content.replace(projection, '');
 const script = process.env.P07_MENUS_BASELINE === '1' ? originalScript : descriptor.script.content;
 const core = fs.readFileSync(path.join(root, 'src/libs/manager-access-core.cjs'), 'utf8');
+const nativeCore = fs.readFileSync(path.join(root,'src/libs/native-access-core.cjs'),'utf8');
 const stage1Core = fs.readFileSync(path.join(root, 'src/libs/stage1-access-core.cjs'), 'utf8');
 const ids = ['920007000301', '920007000302', '920007000303', '920007000304', '910000010001', '910000010002', '910000010005'];
 let browser;
@@ -35,7 +36,7 @@ async function fixture(t, options = {}) {
     .replace(/import\s+([\s\S]*?)\s+from\s+(['"])([^'"]+)\2\s*;?/g,
       (_, binding, quote, name) => `const ${binding.trim()} = window.__deps[${JSON.stringify(name)}];`)
     .replace('export default', 'module.exports =');
-  await page.evaluate(async ({componentScript, template, core, stage1Core, options, ids}) => {
+  await page.evaluate(async ({componentScript, template, core, nativeCore, stage1Core, options, ids}) => {
     const events = [], calls = [], messages = [];
     Vue.config.productionTip = false; Vue.config.devtools = false;
     Vue.config.errorHandler = (error, vm, info) => {
@@ -47,7 +48,9 @@ async function fixture(t, options = {}) {
     };
     Vue.config.warnHandler = (message, vm) => events.push({warning: true, component: vm?.$options.name || null});
     const stage1Module = {exports: {}}; new Function('module', stage1Core)(stage1Module);
+    const nativeModule = {exports: {}}; new Function('module', nativeCore)(nativeModule);
     const module = {exports: {}}; new Function('module', 'require', core)(module, name => {
+      if (name === './native-access-core.cjs') return nativeModule.exports;
       if (name !== './stage1-access-core.cjs') throw Error('Unexpected browser fixture dependency');
       return stage1Module.exports;
     }); const access = module.exports;
@@ -97,7 +100,7 @@ async function fixture(t, options = {}) {
     vm.$mount('#test');
     window.__menusFixture = {vm, events, calls, messages, tree};
     await Vue.nextTick(); await new Promise(resolve => setTimeout(resolve, 40)); await Vue.nextTick();
-  }, {componentScript, template: descriptor.template.content, core, stage1Core, options, ids});
+  }, {componentScript, template: descriptor.template.content, core, nativeCore, stage1Core, options, ids});
   async function snapshot() {
     return page.evaluate(() => {
       const f = window.__menusFixture, vm = f.vm;

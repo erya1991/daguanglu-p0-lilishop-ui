@@ -1,3 +1,4 @@
+import {messageTemplatePayload} from '@/libs/native-access-core.cjs';
 import {
   getRequest,
   putRequest,
@@ -28,7 +29,7 @@ export const getWechatMessagePage = (params) => {
 }
 //编辑微信消息模版
 export const editWechatMessageTemplate = (id, params) => {
-  return putRequest(`/wechat/wechatMessage/${id}`, params)
+  return putRequest(`/wechat/wechatMessage/${id}`, messageTemplatePayload(params,false))
 }
 //删除微信消息模版
 export const delWechatMessageTemplate = (id, params) => {
@@ -46,7 +47,7 @@ export const getWechatMPMessagePage = (params) => {
 }
 //编辑微信消息订阅模版
 export const editWechatMPMessageTemplate = (id, params) => {
-  return putRequest(`/wechat/wechatMPMessage/${id}`, params)
+  return putRequest(`/wechat/wechatMPMessage/${id}`, messageTemplatePayload(params,true))
 }
 //删除微信消息订阅模版
 export const delWechatMPMessageTemplate = (id, params) => {

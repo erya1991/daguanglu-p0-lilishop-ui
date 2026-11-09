@@ -13,9 +13,9 @@
           <span slot="open">级联</span>
           <span slot="close">单选</span>
         </i-switch>
-        <Button @click="addRootMenu">添加顶级菜单</Button>
-        <Button @click="addMenu" type="primary">添加子菜单</Button>
-        <Button @click="delAll">批量删除</Button>
+        <Button :disabled="!($nativeCan('POST','/manager/permission/menu'))" @click="addRootMenu">添加顶级菜单</Button>
+        <Button :disabled="!($nativeCan('POST','/manager/permission/menu'))" @click="addMenu" type="primary">添加子菜单</Button>
+        <Button :disabled="!($nativeCan('DELETE','/manager/permission/menu/0'))" @click="delAll">批量删除</Button>
         <Dropdown @on-click="handleDropdown">
           <Button>
             更多操作
@@ -117,7 +117,7 @@
               </Tooltip>
             </FormItem>
             <Form-item>
-              <Button
+              <Button :disabled="!($nativeCan('PUT','/manager/permission/menu/0'))"
                 style="margin-right: 5px"
                 @click="submitEdit"
                 :loading="submitLoading"
@@ -180,7 +180,7 @@
       </Form>
       <div slot="footer">
         <Button type="text" @click="menuModalVisible = false">取消</Button>
-        <Button type="primary" :loading="submitLoading" @click="submitAdd">提交</Button>
+        <Button :disabled="!($nativeCan('POST','/manager/permission/menu'))" type="primary" :loading="submitLoading" @click="submitAdd">提交</Button>
       </div>
     </Modal>
   </div>
@@ -203,7 +203,7 @@ export default {
   components: {Stage0ManagerAccess},
   data() {
     return {
-      stage0Mode: stage0ManagerEnabled,
+      stage0Mode: stage0ManagerEnabled && !(typeof BASE!=='undefined' && BASE.p0IntegrationEnabled===true),
       loading: true, // 加载状态
       strict: true, // 级联 单选
       maxHeight: "500px", // 最大高度

@@ -2,7 +2,7 @@
   <Card>
     <Row class="operation">
       <Button
-        @click="handleAsyncRegion"
+        :disabled="integrationMode" :title="integrationMode?'本机验收环境未配置外部地区同步':''" @click="handleAsyncRegion"
         :loading="asyncLoading"
         type="primary"
         icon="md-add"
@@ -54,11 +54,11 @@
           </FormItem>
 
           <div class="button-list">
-            <Button type="default" @click="handleUpdate('formValidate')"
+            <Button type="default" :disabled="!$nativeCan('PUT','/manager/setting/region/'+formValidate.id)" @click="handleUpdate('formValidate')"
               >修改</Button
             >
-            <Button type="primary" ghost @click="handleInsert()">添加</Button>
-            <Button type="error" @click="handleDel('formValidate')"
+            <Button type="primary" ghost :disabled="!$nativeCan('POST','/manager/setting/region/save')" @click="handleInsert()">添加</Button>
+            <Button type="error" :disabled="!$nativeCan('DELETE','/manager/setting/region/'+formValidate.id)" @click="handleDel('formValidate')"
               >删除</Button
             >
           </div>
@@ -102,6 +102,7 @@ import {
 export default {
   data() {
     return {
+      integrationMode: typeof BASE !== 'undefined' && BASE.p0IntegrationEnabled === true,
       asyncLoading: false, // 加载状态
       num: 10, // 更新倒计时
       modalFlag: false, // 新增编辑标识

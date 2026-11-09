@@ -19,7 +19,7 @@ const service = axios.create({
 });
 const stage0ManagerProtocol = typeof BASE !== 'undefined' && BASE.stage0ManagerSessionEnabled === true;
 service.interceptors.request.use(
-  config => {
+  async config => {
     if (localDevelopment.enabled && !localDevelopment.allowedRequest(config)) {
       return Promise.reject(new Error('Local development request target is not approved'));
     }
@@ -44,7 +44,16 @@ service.interceptors.request.use(
       if (source.accessToken !== config.headers.accessToken) {
         return Promise.reject(new Error('Manager session changed before request'));
       }
-      config.__managerSession = source;
+      // Authenticate before a command is sent. Only the read may refresh/replay;
+      // a business write or upload is still dispatched once and is never retried here.
+      if (typeof BASE !== 'undefined' && BASE.p0IntegrationEnabled === true && !replayable(config.method)) {
+        const checked = await service({method: 'get', url: '/passport/user/info', headers: {accessToken: source.accessToken}});
+        if (!checked || checked.success !== true || !managerSession.sameSession(source)) {
+          throw new Error('Manager authorization changed before command');
+        }
+        config.headers.accessToken = managerSession.snapshot().accessToken;
+      }
+      config.__managerSession = managerSession.snapshot();
     }
     return config;
   },
@@ -85,6 +94,7 @@ function retryRead(config) {
 // Business rejection is never converted to a successful write or a refresh.
 service.interceptors.response.use(
   async response => {
+    if (response.config && response.config.__managerSession && !managerSession.sameSession(response.config.__managerSession)) throw new Error('Manager session changed before response');
     const data = response.data;
     if (failureKind(response.status, data, stage0ManagerProtocol) === 'expired') {
       if (await recoverRead(response.config)) return retryRead(response.config);
@@ -94,6 +104,7 @@ service.interceptors.response.use(
   },
   async error => {
     if (error.response) {
+      if (error.config && error.config.__managerSession && !managerSession.sameSession(error.config.__managerSession)) return Promise.reject(new Error('Manager session changed before response'));
       const {status, data} = error.response;
       const config = error.config || error.response.config;
       if (failureKind(status, data, stage0ManagerProtocol) === 'expired' && await recoverRead(config)) {

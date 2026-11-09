@@ -6,9 +6,9 @@
           <span slot="open">级联</span>
           <span slot="close">单选</span>
         </i-switch>
-        <Button @click="addRoot">添加部门</Button>
-        <Button @click="add" type="primary">添加子部门</Button>
-        <Button @click="delAll">批量删除</Button>
+        <Button :disabled="!($nativeCan('POST','/manager/permission/department'))" @click="addRoot">添加部门</Button>
+        <Button :disabled="!($nativeCan('POST','/manager/permission/department'))" @click="add" type="primary">添加子部门</Button>
+        <Button :disabled="!($nativeCan('DELETE','/manager/permission/department/0'))" @click="delAll">批量删除</Button>
         <Button @click="getParentList">刷新</Button>
       </Row>
       <Row type="flex" justify="start">
@@ -105,7 +105,7 @@
               </i-switch>
             </FormItem> -->
             <Form-item>
-              <Button
+              <Button :disabled="!($nativeCan('PUT','/manager/permission/department/0') && $nativeCan('PUT','/manager/permission/departmentRole/0'))"
                 style="margin-right: 5px"
                 @click="submitEdit"
                 :loading="submitLoading"
@@ -159,7 +159,7 @@
       </Form>
       <div slot="footer">
         <Button type="text" @click="cancelAdd">取消</Button>
-        <Button type="primary" :loading="submitLoading" @click="submitAdd"
+        <Button :disabled="!($nativeCan('POST','/manager/permission/department'))" type="primary" :loading="submitLoading" @click="submitAdd"
           >提交</Button
         >
       </div>
@@ -364,10 +364,12 @@ export default {
             updateDepartmentRole(this.form.id, roleWay),
           ]).then((res) => {
             this.submitLoading = false;
-            if (res[0].success) {
+            if (res.every(result => result.success)) {
               this.$Message.success("编辑成功");
               this.init();
               this.modalVisible = false;
+            } else {
+              this.$Message.error("部门或继承授权未保存完整，请重新读取核对");
             }
           });
         }

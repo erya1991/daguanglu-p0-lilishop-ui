@@ -1,6 +1,11 @@
 <template>
   <Stage0ManagerAccess v-if="stage0Mode" kind="users" />
   <div v-else class="search">
+    <Modal v-model="temporaryPasswordVisible" title="临时密码（仅本次显示）" :mask-closable="false" @on-visible-change="clearTemporaryPasswords">
+      <p>请通过受控方式交付账号使用人，关闭后不再显示。</p>
+      <div v-for="item in temporaryPasswords" :key="item.id" style="margin-top:12px"><span>{{item.username}}</span><Input readonly type="password" password :value="item.password" autocomplete="new-password" /></div>
+      <div slot="footer"><Button type="primary" @click="temporaryPasswordVisible=false">已安全保存，关闭</Button></div>
+    </Modal>
     <Card>
       <Form ref="searchForm" :model="searchForm" inline :label-width="70" class="search-form">
         <Form-item label="用户名">
@@ -29,9 +34,9 @@
       </Card>
     <Card>
       <Row class="operation padding-row">
-        <Button @click="add" type="primary">添加</Button>
-        <Button @click="delAll">批量删除</Button>
-        <Button @click="resetPass">重置密码</Button>
+        <Button :disabled="!($nativeCan('POST','/manager/passport/user/register'))" @click="add" type="primary">添加</Button>
+        <Button :disabled="!($nativeCan('DELETE','/manager/passport/user/0'))" @click="delAll">批量删除</Button>
+        <Button :disabled="!($nativeCan('POST','/manager/passport/user/resetPassword/0'))" @click="resetPass">重置密码</Button>
       </Row>
       <Table
         :loading="loading"
@@ -131,7 +136,8 @@ export default {
   },
   data() {
     return {
-      stage0Mode: stage0ManagerEnabled,
+      stage0Mode: stage0ManagerEnabled && !(typeof BASE!=='undefined' && BASE.p0IntegrationEnabled===true),
+      temporaryPasswordVisible: false, temporaryPasswords: [],
       loading: true, // 加载状态
       selectCount: 0, // 已选数量
       selectList: [], // 已选数据列表
@@ -270,7 +276,7 @@ export default {
           render: (h, params) => {
             let enableOrDisable = "";
             if (params.row.status == true) {
-              enableOrDisable = h(
+              enableOrDisable = (this.$nativeCan('PUT','/manager/passport/user/enable/'+params.row.id) ? h(
                 "a",
                 {
                   style: {
@@ -286,9 +292,9 @@ export default {
                   }
                 },
                 "禁用"
-              );
+              ) : null);
             } else {
-              enableOrDisable = h(
+              enableOrDisable = (this.$nativeCan('PUT','/manager/passport/user/enable/'+params.row.id) ? h(
                 "a",
                 {
                   style: {
@@ -304,10 +310,10 @@ export default {
                   }
                 },
                 "启用"
-              );
+              ) : null);
             }
             return h("div", [
-              h(
+              (this.$nativeCan('PUT','/manager/passport/user/admin/edit') ? h(
                 "a",
                 {
                   style: {
@@ -323,7 +329,7 @@ export default {
                   }
                 },
                 "编辑"
-              ),
+              ) : null),
               h(
                 "span",
                 { style: { margin: "0 8px", color: "#dcdee2" } },
@@ -335,7 +341,7 @@ export default {
                 { style: { margin: "0 8px", color: "#dcdee2" } },
                 "|"
               ),
-              h(
+              (this.$nativeCan('DELETE','/manager/passport/user/'+params.row.id) ? h(
                 "a",
                 {
                   style: {
@@ -350,7 +356,7 @@ export default {
                   }
                 },
                 "删除"
-              )
+              ) : null)
             ]);
           }
         }
@@ -360,6 +366,7 @@ export default {
     };
   },
   methods: {
+    clearTemporaryPasswords(visible) { if(!visible) this.temporaryPasswords=[]; },
     // 初始化数据
     init() {
       this.getUserList();
@@ -435,7 +442,7 @@ export default {
         content:
           "您确认要重置所选的 " +
           this.selectCount +
-          " 条用户数据密码为【123456】?",
+          " 个账号的密码？系统将生成独立临时密码，原登录会话将失效。",
         loading: true,
         onOk: () => {
           let ids = "";
@@ -446,7 +453,8 @@ export default {
           resetPassword(ids).then(res => {
             this.$Modal.remove();
             if (res.success) {
-              this.$Message.success("操作成功");
+              this.temporaryPasswords = Object.entries(res.result || {}).map(([id,password])=>({id,password,username:(this.selectList.find(u=>u.id===id)||{}).username||id}));
+              this.temporaryPasswordVisible = true;
               this.clearSelectAll();
               this.getUserList();
             }

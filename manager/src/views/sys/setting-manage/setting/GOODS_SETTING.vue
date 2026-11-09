@@ -55,12 +55,12 @@
         </FormItem>
       </div>
      <div class="label-btns">
-        <Button type="primary" @click="submit('formValidate')">保存</Button>
+        <Button :disabled="!$nativeCan('PUT','/manager/setting/setting/put/'+type)" type="primary" @click="submit('formValidate')">保存</Button>
         <div class="es-buttons">
-          <Button type="success" @click="createIndex()">重新生成所有商品索引</Button>
-          <Button type="info" @click="deleteDownGoods()">删除ES中下架的商品</Button>
-          <Button type="warning" @click="generateCache()">生成所有商品的缓存</Button>
-          <Button type="error" @click="deleteNotExistIndex()">删除不存在的索引</Button>
+          <Button v-if="!$p0Integration" type="success" @click="createIndex()">重新生成所有商品索引</Button>
+          <Button v-if="!$p0Integration" type="info" @click="deleteDownGoods()">删除ES中下架的商品</Button>
+          <Button v-if="!$p0Integration" type="warning" @click="generateCache()">生成所有商品的缓存</Button>
+          <Button v-if="!$p0Integration" type="error" @click="deleteNotExistIndex()">删除不存在的索引</Button>
         </div>
         <div class="progress-item" v-if="showProgress">
           <i-progress :percent="progressVal"></i-progress>

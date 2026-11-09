@@ -35,7 +35,7 @@
                 </FormItem>
 
               </Form>
-              <Button @click="setupSetting">保存设置</Button>
+              <Button :disabled="!$nativeCan('PUT','/manager/setting/setting/put/'+type)" @click="setupSetting">保存设置</Button>
             </div>
 
           </div>

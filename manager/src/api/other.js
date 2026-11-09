@@ -99,3 +99,5 @@ export const getOpenHomeData = params => {
 export const addOpenHomeData = params => {
   return postRequest(`/other/pageData/pageType/${params}`);
 };
+
+export const getMessageRecipients = client => getRequest("/other/message/recipients", {client});

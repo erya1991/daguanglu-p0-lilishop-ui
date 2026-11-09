@@ -14,15 +14,15 @@ export const getLogisticsPage = params => {
 };
 // 删除
 export const delLogistics = id => {
-  return deleteRequest(`/other/logistics/delete/${id}`);
+  return deleteRequest(`/other/logistics/${id}`);
 };
 // 添加
 export const addLogistics = params => {
-  return postRequest(`/other/logistics/save`,params);
+  return postRequest(`/other/logistics`,params);
 };
 // 通过id查询详情
 export const getLogisticsDetail = id => {
-  return getRequest(`/other/logistics/get/${id}`);
+  return getRequest(`/other/logistics/${id}`);
 };
 // 编辑
 export const updateLogistics = (id,params) => {

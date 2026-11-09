@@ -23,7 +23,7 @@
                   <Input maxlength="300" v-model="formValidate.callbackUrl"  class="w200" />
                 </FormItem>
                 <FormItem label="操作" >
-                  <Button @click="setupSetting">保存设置</Button>
+                  <Button :disabled="!$nativeCan('PUT','/manager/setting/setting/put/'+type)" @click="setupSetting">保存设置</Button>
                 </FormItem>
               </Form>
             </div>

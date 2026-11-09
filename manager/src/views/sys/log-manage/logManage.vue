@@ -112,7 +112,7 @@ export default {
       searchForm: {
         // 请求参数
         type: 1,
-        key: "",
+        searchKey: "",
         operatorName: "",
         pageNumber: 1,
         pageSize: 20,

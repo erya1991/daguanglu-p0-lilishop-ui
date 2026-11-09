@@ -34,7 +34,7 @@
               <div class="pay-list">
                 <CheckboxGroup @on-change="handleChangePayType" v-model="item.supports">
 
-                  <Checkbox v-for="(support,i)  in supportForm.payments" :key="i" :label="support">
+                  <Checkbox :disabled="!$nativeCan('PUT','/manager/setting/setting/put/'+type)" v-for="(support,i)  in supportForm.payments" :key="i" :label="support">
 
                     {{payWay[support] || support}}
 

@@ -5,7 +5,7 @@ import Cookies from "js-cookie";
 import localDevelopment from "@/config/local-development.cjs";
 import {managerSession} from './manager-session';
 import {managerAccess, stage0ManagerEnabled} from './manager-access';
-const usabilityEnabled = typeof BASE !== 'undefined' && BASE.stage1Enabled === true && BASE.stage2Enabled !== true && BASE.stage1WebUsabilityEnabled === true;
+const usabilityEnabled = typeof BASE !== 'undefined' && BASE.stage1Enabled === true && (BASE.stage2Enabled !== true || BASE.p0IntegrationEnabled === true) && BASE.stage1WebUsabilityEnabled === true;
 
 let util = {};
 let stage0Flight = null;

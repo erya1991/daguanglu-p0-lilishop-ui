@@ -16,7 +16,11 @@ import {getRequest, postRequest, putRequest, deleteRequest, importRequest, uploa
 import {setStore, getStore, removeStore} from '@/libs/storage'
 import util from '@/libs/util'
 import localDevelopment from '@/config/local-development.cjs'
-import {stage0ManagerEnabled} from '@/libs/manager-access'
+import {stage0ManagerEnabled, managerAccess} from '@/libs/manager-access'
+import nativeAccess from '@/libs/native-access-core.cjs'
+Vue.observable(managerAccess.state);
+Vue.prototype.$p0Integration = nativeAccess.enabled();
+Vue.prototype.$nativeCan = (method,path) => !nativeAccess.enabled() || nativeAccess.grants(managerAccess.state.info,method,path);
 
 import * as filters from '@/utils/filters' // global filter
 import liliDialog from '@/components/lili-dialog'

@@ -12,7 +12,7 @@
       </Form>
     </Card>
     <Card>
-      <Button class="mt_10 mb_10" @click="addAppVersion" type="primary">添加</Button>
+      <Button class="mt_10 mb_10" :disabled="!$nativeCan('POST','/manager/other/appVersion')" @click="addAppVersion" type="primary">添加</Button>
 
       <Table :loading="loading" border :columns="columns" :data="data" ref="table" sortable="custom"  ></Table>
 
@@ -68,7 +68,7 @@
       </Form>
       <div slot="footer">
         <Button type="text" @click="modalVisible = false">取消</Button>
-        <Button type="primary" :loading="submitLoading" @click="saveAppVersion">保存</Button>
+        <Button type="primary" :loading="submitLoading" :disabled="!$nativeCan(form.id?'PUT':'POST',form.id?'/manager/other/appVersion/'+form.id:'/manager/other/appVersion')" @click="saveAppVersion">保存</Button>
       </div>
     </Modal>
     <div>
@@ -238,7 +238,7 @@ export default {
                 { style: { margin: "0 8px", color: "#dcdee2" } },
                 "|"
               ),
-              h(
+              (this.$nativeCan('PUT','/manager/other/appVersion/'+params.row.id)?h(
                 "a",
                 {
                   style: {
@@ -253,13 +253,13 @@ export default {
                   },
                 },
                 "修改"
-              ),
+              ):null),
               h(
                 "span",
                 { style: { margin: "0 8px", color: "#dcdee2" } },
                 "|"
               ),
-              h(
+              (this.$nativeCan('DELETE','/manager/other/appVersion/'+params.row.id)?h(
                 "a",
                 {
                   style: {
@@ -274,7 +274,7 @@ export default {
                   },
                 },
                 "删除"
-              ),
+              ):null),
             ]);
           },
         },

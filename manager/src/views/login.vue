@@ -126,7 +126,7 @@ export default {
             return;
           }
           // 加载菜单
-          Cookies.set("userInfoManager", JSON.stringify(res.result));
+          Cookies.set("userInfoManager", require("@/libs/native-access-core.cjs").profileCookie(res.result), {sameSite: "Strict", secure: window.location.protocol === "https:"});
           this.$store.commit("setAvatarPath", res.result.avatar);
           Promise.resolve(util.initRouter(this)).then(ok => {
             if (!managerSession.sameSession(source)) return;

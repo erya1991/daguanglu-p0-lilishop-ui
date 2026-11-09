@@ -4,7 +4,7 @@
       <Tabs value="RESOURCE" @on-click="handleClickType">
         <TabPane label="图片源" name="RESOURCE">
           <Row class="operation" style="margin-bottom: 10px">
-            <Button @click="add" type="primary">添加</Button>
+            <Button :disabled="!$nativeCan('POST','/manager/other/verificationSource')" @click="add" type="primary">添加</Button>
           </Row>
           <Table
             :loading="loading"
@@ -18,7 +18,7 @@
             <template slot="imageSlot" slot-scope="scope">
               <div style="">
                 <img
-                  :src="scope.row.resource"
+                  :src="scope.row.preview || scope.row.resource"
                   style="height: 60px; margin-top: 1px; width: 90px"
                 />
               </div>
@@ -42,7 +42,7 @@
         </TabPane>
         <TabPane label="滑块源" name="SLIDER">
           <Row class="operation" style="margin-bottom: 10px">
-            <Button @click="add" type="primary" icon="md-add">添加</Button>
+            <Button :disabled="!$nativeCan('POST','/manager/other/verificationSource')" @click="add" type="primary" icon="md-add">添加</Button>
           </Row>
           <Table
             :loading="loading"
@@ -56,7 +56,7 @@
             <template slot="imageSlot" slot-scope="scope">
               <div style="">
                 <img
-                  :src="scope.row.resource"
+                  :src="scope.row.preview || scope.row.resource"
                   style="height: 60px; margin-top: 1px; width: 60px"
                 />
               </div>
@@ -106,7 +106,7 @@
       </Form>
       <div slot="footer">
         <Button type="text" @click="modalVisible = false">取消</Button>
-        <Button type="primary" :loading="submitLoading" @click="handleSubmit"
+        <Button type="primary" :loading="submitLoading" :disabled="!$nativeCan(form.id?'PUT':'POST',form.id?'/manager/other/verificationSource/'+form.id:'/manager/other/verificationSource')" @click="handleSubmit"
           >提交
         </Button>
       </div>
@@ -195,7 +195,7 @@ export default {
           width: 200,
           render: (h, params) => {
             return h("div", [
-              h(
+              (this.$nativeCan('PUT','/manager/other/verificationSource/'+params.row.id)?h(
                 "a",
                 {
                   style: {
@@ -211,13 +211,13 @@ export default {
                   },
                 },
                 "编辑"
-              ),
+              ):null),
               h(
                 "span",
                 { style: { margin: "0 8px", color: "#dcdee2" } },
                 "|"
               ),
-              h(
+              (this.$nativeCan('DELETE','/manager/other/verificationSource/'+params.row.id)?h(
                 "a",
                 {
                   style: {
@@ -232,7 +232,7 @@ export default {
                   },
                 },
                 "删除"
-              ),
+              ):null),
             ]);
           },
         },

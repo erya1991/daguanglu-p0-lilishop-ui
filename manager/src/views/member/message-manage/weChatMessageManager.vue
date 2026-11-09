@@ -28,18 +28,19 @@
 
       </div>
       <div slot="footer" style="text-align: right">
-        <Button v-if="tab === 'WECHAT'"  type="primary"  @click="wechatFormDataEdit">保存</Button>
+        <Button v-if="tab === 'WECHAT'"  type="primary"  :disabled="!$nativeCan('PUT', '/manager/wechat/wechatMessage/' + id)" @click="wechatFormDataEdit">保存</Button>
 
-        <Button v-else  type="primary" @click="wechatMPFormDataEdit">保存</Button>
+        <Button v-else  type="primary" :disabled="!$nativeCan('PUT', '/manager/wechat/wechatMPMessage/' + id)" @click="wechatMPFormDataEdit">保存</Button>
       </div>
     </Modal>
 
   <Card>
+    <Alert v-if="integrationMode" type="info">仅保存本地消息配置；外部微信模板同步和发送未启用。</Alert>
     <Tabs @on-click="tabPaneChange" v-model="tab">
       <TabPane label="微信消息" name="WECHAT">
         <div class="search">
             <Row class="operation mt_10">
-              <Button @click="weChatSync" type="primary">初始化微信消息</Button>
+              <Button :disabled="integrationMode" @click="weChatSync" type="primary">初始化微信消息</Button>
             </Row>
             <Table
               :loading="loading"
@@ -65,7 +66,7 @@
       <TabPane label="微信小程序订阅消息" name="WECHATMP">
         <div class="search">
             <Row class="operation mt_10">
-              <Button @click="weChatSync('mp')" type="primary">初始化微信小程序订阅消息</Button>
+              <Button :disabled="integrationMode" @click="weChatSync('mp')" type="primary">初始化微信小程序订阅消息</Button>
             </Row>
             <Table
               :loading="loading"
@@ -113,6 +114,7 @@ export default {
   data() {
     return {
 
+      integrationMode: typeof BASE !== "undefined" && BASE.p0IntegrationEnabled === true,
       wechatModal: false,// modal展示
       wechatFormData: {}, // 微信数据
       wechatMPFormData: {}, // 微信订阅消息
@@ -198,7 +200,7 @@ export default {
                 { style: { margin: "0 8px", color: "#dcdee2" } },
                 "|"
               ),
-              h(
+              !this.integrationMode && h(
                 "a",
                 {
                   style: {
@@ -239,13 +241,14 @@ export default {
     },
     //微信弹出框
     wechatSettingAlert(v) {
-      this.wechatFormData = v
+      this.wechatFormData = {...v}
       this.id = v.id
       this.wechatModal = true
     },
 
     //同步微信消息
     weChatSync(mp) {
+      if(this.integrationMode)return;
       this.$Modal.confirm({
         title: "提示",
         // 记得确认修改此处
@@ -277,14 +280,11 @@ export default {
     wechatFormDataEdit() {
       this.$refs['wechatFormData'].validate((valid) => {
         if (valid) {
-          if(!this.wechatFormData.updateTime){
-            this.wechatFormData.updateTime = ''
-          }
           editWechatMessageTemplate(this.id, this.wechatFormData).then(res => {
-            if (res.message === 'success') {
+            if (res.success) {
               this.$Message.success('微信模板修改成功');
               this.wechatModal = false;
-              this.getWechatMessagePage();
+              this.tabPaneChange(this.tab);
             }
           });
         }
@@ -293,11 +293,11 @@ export default {
     wechatMPFormDataEdit() {
       this.$refs['wechatFormData'].validate((valid) => {
         if (valid) {
-          editWechatMPMessageTemplate(this.id, this.wechatMPFormData).then(res => {
-            if (res.message === 'success') {
+          editWechatMPMessageTemplate(this.id, this.wechatFormData).then(res => {
+            if (res.success) {
               this.$Message.success('微信消息订阅模板修改成功');
               this.wechatModal = false;
-              this.getWechatMessagePage();
+              this.tabPaneChange(this.tab);
             }
           });
         }
@@ -306,6 +306,7 @@ export default {
 
     //删除微信模消息
     delWeChat(v) {
+      if(this.integrationMode)return;
       this.$Modal.confirm({
         title: "提示",
         content: "确定删除此模板?",
@@ -341,7 +342,7 @@ export default {
     },
     getDataList() {
       this.loading = true;
-      getWechatMessagePage(this.searchWe).then(res => {
+      getWechatMessagePage(this.weChatSearchForm).then(res => {
         this.loading = false;
         if (res.success) {
           this.weChatData = res.result.records;

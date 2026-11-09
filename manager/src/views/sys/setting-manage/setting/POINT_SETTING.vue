@@ -59,7 +59,7 @@
         <Button @click="addSign">新增签到</Button>
       </FormItem>
       <div class="label-btns">
-        <Button type="primary" @click="submit('formValidate')">保存</Button>
+        <Button :disabled="!$nativeCan('PUT','/manager/setting/setting/put/'+type)" type="primary" @click="submit('formValidate')">保存</Button>
       </div>
     </Form>
   </div>

@@ -1,10 +1,15 @@
 
 <template>
   <Card v-if="show">
+    <Alert v-if="$p0Integration" show-icon>本机 Mock 配置。外部支付、短信、微信、物流与 OSS 尚未配置；保存参数不代表已接通或允许真实调用。</Alert>
+    <Alert v-if="error" type="error" show-icon>{{error}}</Alert>
+    <Spin v-if="loading" fix />
     <Tabs v-model="selected" @on-click="clickTab">
       <TabPane :label="tabItem.name" :name="tabItem.type" v-for="(tabItem, tabIndex) in tabWay" :key="tabIndex">
-        <component v-if="settingData" :res="settingData" :type="selected"
-                   :is="templateSetting[tabItem.type]"></component>
+        <fieldset v-if="settingData && selected === tabItem.type" :disabled="!$nativeCan('PUT','/manager/setting/setting/put/'+selected)" style="border:0;padding:0;min-width:0">
+          <Alert v-if="!$nativeCan('PUT','/manager/setting/setting/put/'+selected)" type="info">当前授权只允许查看设置。</Alert>
+          <component :res="settingData" :type="selected" :is="templateSetting[tabItem.type]" />
+        </fieldset>
       </TabPane>
     </Tabs>
   </Card>
@@ -18,7 +23,7 @@ export default {
     return {
       templateSetting, // 设置模板
       selected: "", // 已选
-      settingData: "", // 模板数据
+      settingData: "", error: "", loading: false, requestSequence: 0, // 模板数据
       show: true, // 是否显示
       setting: [
         //基础配置
@@ -107,7 +112,8 @@ export default {
      */
     getSettingData(name) {
       this.settingData = "";
-      Object.keys(this).forEach((item) => {
+      if (this.$p0Integration) this.tabWay = [...this.setting, ...this.authLogin, ...this.pay];
+      else Object.keys(this).forEach((item) => {
         if (this.$route.name == item) {
           this.tabWay = this[item];
         }
@@ -118,11 +124,13 @@ export default {
         this.selected = name;
       }
 
-      getSetting(name).then((res) => {
-        if (res.result) {
-          this.settingData = JSON.stringify(res.result);
-        }
-      });
+      const sequence=++this.requestSequence; this.loading=true;this.error='';
+      getSetting(name).then(res => {
+        if(sequence!==this.requestSequence)return;
+        if(res.success && res.result) this.settingData=JSON.stringify(res.result);
+        else this.error='设置读取失败，请重新选择或刷新。';
+      }).catch(()=>{if(sequence===this.requestSequence)this.error='设置请求失败，请重试。';})
+        .finally(()=>{if(sequence===this.requestSequence)this.loading=false;});
     },
   },
 };

@@ -1,4 +1,5 @@
 'use strict';
+const native = require('./native-access-core.cjs');
 const PROTOCOL = 'STAGE0_SESSION';
 const stage1 = require('./stage1-access-core.cjs');
 const capabilities = new Set(['SELF_READ', 'MENU_SELF_READ', 'PREP_READ', 'USER_READ', 'ROLE_READ',
@@ -18,6 +19,7 @@ function ids(value) {
   return Array.isArray(value) && value.every(id => typeof id === 'string' && /^[A-Za-z0-9_-]+$/.test(id));
 }
 function normalizeInfo(result, stage1Enabled = false) {
+  if (native.enabled()) return native.normalize(result);
   if (stage1Enabled) return stage1.normalize(result);
   const scope = result && result.stage0;
   if (!result || result.sessionProtocol !== PROTOCOL || !scope || !['A', 'B'].includes(scope.role) ||
@@ -40,6 +42,7 @@ function canManageRole(info, id) {
   return Boolean(has(info, 'ROLE_MENU_WRITE') && info.stage0.roleAIds.includes(id));
 }
 function filterMenus(rows, info) {
+  if (native.active(info)) return native.menus(rows,info);
   if (info && info.stage1) return stage1.menus(rows, info);
   if (!info || !Array.isArray(rows)) return [];
   const allowed = new Set([...info.stage0.readMenuIds, ...(info.stage0.role === 'B' ? info.stage0.maintenanceMenuIds : [])]);
@@ -62,6 +65,7 @@ function filterMenus(rows, info) {
   return visit(rows);
 }
 function canRoute(info, menus, route) {
+  if (native.active(info)) return native.canRoute(info,menus,route);
   if (info && info.stage1) return stage1.canRoute(info, menus, route);
   if (!info) return false;
   if (route.name === 'home_index') return has(info, 'SELF_READ');

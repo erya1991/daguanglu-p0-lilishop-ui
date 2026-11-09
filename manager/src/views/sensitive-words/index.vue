@@ -2,8 +2,8 @@
   <div class="search">
     <Card>
       <Row class="operation">
-        <Button @click="add" type="primary">添加</Button>
-        <Button @click="delAll">批量删除</Button>
+        <Button :disabled="!$nativeCan('POST','/manager/other/sensitiveWords')" @click="add" type="primary">添加</Button>
+        <Button :disabled="!$nativeCan('DELETE','/manager/other/sensitiveWords/delByIds/0')" @click="delAll">批量删除</Button>
       </Row>
         <Table
           :loading="loading"
@@ -41,7 +41,7 @@
       </Form>
       <div slot="footer">
         <Button type="text" @click="modalVisible = false">取消</Button>
-        <Button type="primary" :loading="submitLoading" @click="handleSubmit">提交</Button>
+        <Button type="primary" :loading="submitLoading" :disabled="!$nativeCan(form.id?'PUT':'POST',form.id?'/manager/other/sensitiveWords/'+form.id:'/manager/other/sensitiveWords')" @click="handleSubmit">提交</Button>
       </div>
     </Modal>
   </div>
@@ -122,7 +122,7 @@ export default {
           width: 200,
           render: (h, params) => {
             return h("div", [
-              h(
+              (this.$nativeCan('PUT','/manager/other/sensitiveWords/'+params.row.id)?h(
                 "a",
                 {
                   style: {
@@ -138,7 +138,7 @@ export default {
                   },
                 },
                 "修改"
-              ),
+              ):null),
               h(
                 "span",
                 {
@@ -149,7 +149,7 @@ export default {
                 },
                 "|"
               ),
-              h(
+              (this.$nativeCan('DELETE','/manager/other/sensitiveWords/delByIds/'+params.row.id)?h(
                 "a",
                 {
                   style: {
@@ -164,7 +164,7 @@ export default {
                   },
                 },
                 "删除"
-              ),
+              ):null),
             ]);
           },
         },

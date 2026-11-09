@@ -71,6 +71,7 @@ async function runAfterLogin(profile, {stage1=true,stage2=false,menuReady=true,c
     snapshot:()=>source,sameSession:s=>currentSession&&s===source,stage1Enabled:stage1
   });
   const scope = {
+    window:{location:{protocol:'https:'}},require:id=>{if(id==='@/libs/native-access-core.cjs')return require('../src/libs/native-access-core.cjs');throw Error('Unexpected test module '+id);},
     module:{exports:{}},BASE:{stage0ManagerSessionEnabled:true,stage1Enabled:stage1,stage2Enabled:stage2},
     stage0ManagerEnabled:true,stage1ManagerEnabled:stage1,
     normalizeInfo:accessCore.normalizeInfo,

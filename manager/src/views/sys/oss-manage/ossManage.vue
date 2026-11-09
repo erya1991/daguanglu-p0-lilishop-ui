@@ -96,7 +96,7 @@
                   <Tree :data="treeData" :render="renderContent" @on-select-change.self="handleCateChange"
                         class="demo-tree-render"></Tree>
                   <div class="group-row flex" v-if="!isComponent">
-                    <Button @click="handleClickAddGroup">添加分组</Button>
+                    <Button :disabled="!$nativeCan('POST', '/manager/common/fileDirectory')" @click="handleClickAddGroup">添加分组</Button>
                   </div>
                 </div>
               </div>
@@ -123,7 +123,7 @@
                       >
                         <Button>上传图片</Button>
                       </Upload>
-                      <Button v-if="!isComponent && showType == 'list'" @click="removeAll">批量删除</Button>
+                      <Button v-if="!isComponent && showType == 'list'" :disabled="!$nativeCan('DELETE', '/manager/common/file/delete/0')" @click="removeAll">批量删除</Button>
                     </div>
                   </div>
                 </div>
@@ -143,7 +143,7 @@
                                     <Icon type="md-cloud-download" size="18"/>
                                   </Tooltip>
                                 </div>
-                                <div @click.prevent="remove(item)">
+                                <div v-if="$nativeCan('DELETE', '/manager/common/file/delete/' + item.id)" @click.prevent="remove(item)">
                                   <Tooltip content="删除">
                                     <Icon type="md-trash" size="18"/>
                                   </Tooltip>
@@ -435,7 +435,8 @@ import {
   updateFileDirectory,
 } from "@/api/index";
 import DPlayer from "dplayer";
-import {commonUrl} from "@/libs/axios";
+import {commonUrl, uploadFileRequest} from "@/libs/axios";
+import nativeAccess from "@/libs/native-access-core.cjs";
 
 const config = require("@/config/index");
 
@@ -721,7 +722,7 @@ export default {
                     color: "#2d8cf0",
                     cursor: "pointer",
                     textDecoration: "none",
-                    display: this.selectImage == true ? "none" : "inline-block",
+                    display: this.selectImage == true || !this.$nativeCan("DELETE", "/manager/common/file/delete/" + params.row.id) ? "none" : "inline-block",
                   },
                   on: {
                     click: () => {
@@ -942,7 +943,7 @@ export default {
       return this.activeRoleTab === "MANAGER";
     },
     canUploadImages() {
-      return this.activeRoleTab === "MANAGER";
+      return this.activeRoleTab === "MANAGER" && this.$nativeCan("POST", "/manager/common/upload/file");
     },
     uploadData() {
       return {
@@ -954,9 +955,14 @@ export default {
   },
 
   methods: {
-    beforeUpload() {
+    beforeUpload(file) {
       if (!this.canUploadImages) {
         this.$Message.warning("仅管理员模块支持上传图片");
+        return false;
+      }
+      if (nativeAccess.enabled()) {
+        const data = new FormData();data.append('file', file);data.append('directoryPath', this.searchForm.fileDirectoryId || 'default');
+        uploadFileRequest('/common/upload/file', data).then(result => this.handleSuccess(result, file)).catch(() => this.$Message.error('上传未确认，请查询文件列表后再处理。'));
         return false;
       }
       return true;
@@ -1057,6 +1063,7 @@ export default {
                       slot: "list"
                     }, [
                       h("DropdownItem", {
+                        props: {disabled: !this.$nativeCan("PUT", "/manager/common/fileDirectory")},
                         nativeOn: {
                           click: () => {
                             this.handleContextMenuEdit(root, node, data)
@@ -1066,7 +1073,7 @@ export default {
                       h("DropdownItem", {
                         nativeOn: {
                           click: () => {
-                            this.handleContextMenuDelete()
+                            this.handleContextMenuDelete(data)
                           }
                         }
                       }, "删除"),
@@ -1086,21 +1093,23 @@ export default {
     },
     // 编辑分组
     handleContextMenuEdit(root, node, data) {
+      if(!this.$nativeCan("PUT", "/manager/common/fileDirectory"))return;
       this.insertOrUpdate = "update";
       this.enableGroup = true;
       this.groupFormValidate.directoryName = data.label;
       this.groupFormValidate.id = [data.value];
-      this.groupFormValidate.level = data.level;
+      this.groupFormValidate.level = data.directoryLevel;
       this.groupFormValidate.parentId = data.parentId;
       this.defaultValue = [data.parentId];
     },
     // 删除分组
     async handleContextMenuDelete(val) {
+      if(!val || !this.$nativeCan("DELETE", "/manager/common/fileDirectory/"+val.value))return;
       this.$Modal.confirm({
         title: "提示",
-        content: "是否删除该分组",
+        content: "是否删除分组 " + val.title,
         onOk: async () => {
-          const res = await delFileDirectory(this.selectedGroupData.value);
+          const res = await delFileDirectory(val.value);
           if (res.success) {
             this.$Message.success("删除成功!");
             this.getDataList();
@@ -1114,12 +1123,13 @@ export default {
         if (value[value.length - 1] == '0') {
           this.groupFormValidate.level = 0;
         } else {
-          this.groupFormValidate.level = Number(selectedData[selectedData.length - 1].level) + 1;
+          this.groupFormValidate.level = Number(selectedData[selectedData.length - 1].directoryLevel) + 1;
         }
       }
     },
     // 保存/修改分组
     async submitAddGroup() {
+      if(!this.$nativeCan(this.insertOrUpdate === "insert" ? "POST" : "PUT", "/manager/common/fileDirectory"))return;
       this.$refs["formValidate"].validate(async (valid) => {
         if (valid) {
           let res
@@ -1131,7 +1141,7 @@ export default {
             res = await addFileDirectory(params);
           } else {
             params.id = params.id[params.id.length - 1];
-            params.parentId = params.parentId[params.parentId.length - 1];
+            params.parentId = Array.isArray(params.parentId) ? params.parentId[params.parentId.length - 1] : params.parentId;
             res = await updateFileDirectory(params);
           }
 
@@ -1148,11 +1158,14 @@ export default {
     },
     // 添加/修改分组
     handleClickAddGroup() {
+      if(!this.$nativeCan("POST", "/manager/common/fileDirectory"))return;
       this.insertOrUpdate = "insert";
       if (this.selectedGroupData) {
         this.groupFormValidate.id = [this.selectedGroupData.value];
+        this.groupFormValidate.level = this.selectedGroupData.value === "0" ? 0 : Number(this.selectedGroupData.directoryLevel) + 1;
       } else {
         this.groupFormValidate.id = ["0"];
+        this.groupFormValidate.level = 0;
       }
       this.enableGroup = true;
       this.groupFormValidate.directoryName = "";
@@ -1194,6 +1207,7 @@ export default {
           obj.type = item.directoryType; // 用户类型
           obj.label = item.directoryName;
           obj.level = item.level;
+          obj.directoryLevel = item.level; // Tree components may overwrite their display depth.
           obj.expand = false;
           obj.selected = false;
           obj.contextmenu = false;
@@ -1214,9 +1228,6 @@ export default {
         this.searchForm.fileDirectoryId = value;
         if (value === "0" || value === 0) {
           delete this.searchForm.fileDirectoryId;
-          this.groupFormValidate.level = 0;
-        } else {
-          this.groupFormValidate.level = Number(level) + 1;
         }
         this.searchForm.userEnums = type || this.activeRoleTab;
         this.getDataList();
@@ -1380,6 +1391,7 @@ export default {
     },
     // 批量删除文件
     removeAll() {
+      if(!this.$nativeCan("DELETE", "/manager/common/file/delete/0"))return;
       if (this.selectCount <= 0) {
         this.$Message.warning("您还未选择要删除的数据");
         return;
@@ -1411,6 +1423,7 @@ export default {
     },
     // 单个删除文件
     remove(v) {
+      if(!this.$nativeCan("DELETE", "/manager/common/file/delete/0"))return;
       this.$Modal.confirm({
         title: "确认删除",
         content: "您确认要删除文件 " + v.name + " ?",
@@ -1428,6 +1441,7 @@ export default {
     },
     // 提交修改文件名
     handleSubmit() {
+      if(!this.$nativeCan("POST", "/manager/common/file/rename"))return;
       this.$refs.form.validate((valid) => {
         if (valid) {
           this.submitLoading = true;

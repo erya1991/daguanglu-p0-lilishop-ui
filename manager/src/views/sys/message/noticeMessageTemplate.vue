@@ -3,6 +3,7 @@
     <Row>
       <Col>
         <Card>
+          <Alert v-if="integrationMode" type="info">本机站内信保存到当前 UAT 收件箱；微信、短信外部发送未配置。</Alert>
           <Tabs value="MESSAGE" @on-click="paneChange">
 
             <TabPane label="站内信列表" name="MESSAGE">
@@ -31,7 +32,7 @@
 
               </Form>
               <Row class="operation" style="margin-top: 20px">
-                <Button @click="sendMessage" type="primary">发送消息</Button>
+                <Button :disabled="!$nativeCan('POST', '/manager/other/message')" @click="sendMessage" type="primary">发送消息</Button>
               </Row>
               <Table
                 class="mr_10"
@@ -79,6 +80,7 @@
                 ></Page>
               </Row>
             </TabPane>
+            <TabPane v-if="$nativeCan('GET', '/manager/wechat/wechatMessage')" label="微信消息配置" name="WECHAT_LOCAL"><wechat-config v-if="activePane === 'WECHAT_LOCAL'" /></TabPane>
           </Tabs>
 
         </Card>
@@ -121,7 +123,7 @@
       </div>
       <div slot="footer">
         <Button type="text" @click="modalVisible = false">取消</Button>
-        <Button type="primary" :loading="submitLoading" @click="handleSubmit">保存</Button>
+        <Button type="primary" :loading="submitLoading"  :disabled="!$nativeCan('PUT', '/manager/setting/noticeMessage/' + form.id)" @click="handleSubmit">保存</Button>
       </div>
     </Modal>
 
@@ -171,8 +173,9 @@
         </FormItem>
         <FormItem label="选择会员" prop="scopeType"
                   v-if="memberShow">
-          <Button type="primary" icon="ios-add" @click="addVip" ghost>选择会员</Button>
-          <div style="margin-top:24px;" v-if="messageSendForm.messageClient == 'member'">
+          <Select v-if="integrationMode" v-model="messageSendForm.userIds" multiple filterable><Option v-for="person in localRecipients" :key="person.id" :value="person.id">{{person.name}}</Option></Select>
+          <Button v-else type="primary" icon="ios-add" @click="addVip" ghost>选择会员</Button>
+          <div style="margin-top:24px;" v-if="!integrationMode && messageSendForm.messageClient == 'member'">
             <Table border :columns="userColumns" :data="selectedMember">
             </Table>
           </div>
@@ -183,7 +186,7 @@
       </Form>
       <div slot="footer">
         <Button type="text" @click="messageModalVisible = false">取消</Button>
-        <Button type="primary" :loading="submitLoading" @click="sendMessageSubmit"
+        <Button type="primary" :loading="submitLoading"  :disabled="!$nativeCan('POST', '/manager/other/message')" @click="sendMessageSubmit"
         >发送
         </Button>
       </div>
@@ -288,15 +291,19 @@
   import * as API_Setting from "@/api/setting.js";
   import * as API_Other from "@/api/other.js";
   import * as API_Shop from "@/api/shops.js";
+  import WechatConfig from "@/views/member/message-manage/weChatMessageManager.vue";
   import userList from "@/views/member/list/index";
   import { regular } from "@/utils";
   export default {
     name: "noticeMessageTemplate",
     components: {
-      userList
+      userList, WechatConfig
     },
     data() {
       return {
+        integrationMode: typeof BASE !== "undefined" && BASE.p0IntegrationEnabled === true,
+        activePane: "MESSAGE",
+        localRecipients: [],
         checkUserList: false, //会员选择器
         selectedMember: [], //选择的会员
         loading: true, // 表单加载状态
@@ -408,6 +415,7 @@
             fixed: "right",
             width: 140,
             render: (h, params) => {
+              if(!this.$nativeCan("PUT", "/manager/setting/noticeMessage/" + params.row.id))return h("span", "只读");
               let enableOrDisable = "";
               if (params.row.noticeStatus == "OPEN") {
                 enableOrDisable = h(
@@ -573,7 +581,7 @@
                   { style: { margin: "0 8px", color: "#dcdee2" } },
                   "|"
                 ),
-                h(
+                params.row.messageClient && this.$nativeCan("DELETE", "/manager/other/message/" + params.row.id) && h(
                   "a",
                   {
                     on: {
@@ -692,6 +700,7 @@
 
       //获取全部商家
       getShopList() {
+        if(this.integrationMode) { API_Other.getMessageRecipients("store").then(res => {if(res.success)this.shopList=res.result.map(s=>({id:s.id,storeName:s.name}));}); return; }
         this.loading = true;
         API_Shop.getShopList().then((res) => {
           this.loading = false;
@@ -711,6 +720,7 @@
       },
       // tab切换
       paneChange(v) {
+        this.activePane=v;
         if (v == "SETTING") {
           this.getNoticeMessage()
         }
@@ -793,6 +803,7 @@
       },
       //删除站内信
       delete(id) {
+        if(!this.$nativeCan("DELETE", "/manager/other/message/" + id)) return;
         console.warn(id)
         this.$Modal.confirm({
           title: "确认删除",
@@ -832,8 +843,7 @@
       sendMessageSubmit() {
         let userIds = [];
         let userNames = [];
-        console.warn(this.selectedMember)
-        if (this.messageSendForm.messageClient == 'member' && this.messageSendForm.messageRange == 'MEMBER'){
+        if (!this.integrationMode && this.messageSendForm.messageClient == 'member' && this.messageSendForm.messageRange == 'MEMBER'){
           this.selectedMember.forEach(function(item, index) {
             userIds.push(item.id)
             userNames.push(item.username)
@@ -863,6 +873,7 @@
       },
       //发送对象选择
       selectObject(v) {
+        this.messageSendForm.userIds = [];
         this.messageSendForm.messageRange = "ALL"
         this.shopShow = false
         this.memberShow =false
@@ -881,11 +892,13 @@
         if (v == "MEMBER") {
           this.shopShow = false
           this.memberShow = true
-          this.selectedMember = []
+          this.selectedMember = [];
+          if(this.integrationMode) API_Other.getMessageRecipients("member").then(res=>{if(res.success)this.localRecipients=res.result;});
         }
       },
       //获取管理员发送列表
       getMessage() {
+        if(!this.$nativeCan("GET", "/manager/other/message")) {this.loading=false;return;}
         this.loading = true;
         API_Other.getMessagePage(this.searchMessageForm).then((res) => {
           this.loading = false;
@@ -962,6 +975,7 @@
       },
       // 编辑通知
       edit(v) {
+        if(!this.$nativeCan("PUT", "/manager/setting/noticeMessage/" + v.id)) return;
         API_Setting.getNoticeMessageDetail(v.id).then((res) => {
           if (res.success) {
             this.modalTitle = "编辑通知类推送"
@@ -972,6 +986,7 @@
       },
       //禁用站内信模板
       disable(v) {
+        if(!this.$nativeCan("PUT", "/manager/setting/noticeMessage/" + v.id)) return;
         API_Setting.updateMessageStatus(v.id, "CLOSE").then((res) => {
           if (res.success) {
             this.$Message.success("禁用成功");
@@ -981,6 +996,7 @@
       },
       //启用站内信模板
       enable(v) {
+        if(!this.$nativeCan("PUT", "/manager/setting/noticeMessage/" + v.id)) return;
         API_Setting.updateMessageStatus(v.id, "OPEN").then((res) => {
           if (res.success) {
             this.$Message.success("启用成功");

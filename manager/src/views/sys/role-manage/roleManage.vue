@@ -3,8 +3,8 @@
   <div v-else class="search">
     <Card>
       <Row class="operation">
-        <Button @click="addRole" type="primary">添加角色</Button>
-        <Button @click="delAll">批量删除</Button>
+        <Button :disabled="!($nativeCan('POST','/manager/permission/role'))" @click="addRole" type="primary">添加角色</Button>
+        <Button :disabled="!($nativeCan('DELETE','/manager/permission/role/0'))" @click="delAll">批量删除</Button>
       </Row>
       <Table :loading="loading" border :columns="columns" :data="data" ref="table" sortable="custom" @on-sort-change="changeSort" @on-selection-change="changeSelect"></Table>
       <Row type="flex" justify="end" class="mt_10">
@@ -44,7 +44,7 @@
           <Option value="2">仅展开一级</Option>
           <Option value="3">仅展开两级</Option>
         </Select>
-        <Button type="primary" :loading="submitPermLoading" @click="submitPermEdit()">编辑
+        <Button :disabled="!($nativeCan('POST','/manager/permission/roleMenu/0'))" type="primary" :loading="submitPermLoading" @click="submitPermEdit()">编辑
         </Button>
       </div>
     </Modal>
@@ -94,7 +94,7 @@ export default {
   components: {Stage0ManagerAccess},
   data() {
     return {
-      stage0Mode: stage0ManagerEnabled,
+      stage0Mode: stage0ManagerEnabled && !(typeof BASE!=='undefined' && BASE.p0IntegrationEnabled===true),
       superModelLoading: false, //保存权限弹出选择权限保存
       selectIsSuperModel: false, //保存权限弹出选择权限
       rolePermsWay: [], //查询角色权限集合
@@ -169,7 +169,7 @@ export default {
           width: 230,
           render: (h, params) => {
             return h("div", [
-              h(
+              (this.$nativeCan('POST','/manager/permission/roleMenu/'+params.row.id) ? h(
                 "a",
                 {
                   style: {
@@ -185,13 +185,13 @@ export default {
                   },
                 },
                 "菜单权限"
-              ),
+              ) : null),
               h(
                 "span",
                 { style: { margin: "0 8px", color: "#dcdee2" } },
                 "|"
               ),
-              h(
+              (this.$nativeCan('PUT','/manager/permission/role/'+params.row.id) ? h(
                 "a",
                 {
                   style: {
@@ -207,13 +207,13 @@ export default {
                   },
                 },
                 "编辑"
-              ),
+              ) : null),
               h(
                 "span",
                 { style: { margin: "0 8px", color: "#dcdee2" } },
                 "|"
               ),
-              h(
+              (this.$nativeCan('DELETE','/manager/permission/role/'+params.row.id) ? h(
                 "a",
                 {
                   style: {
@@ -228,7 +228,7 @@ export default {
                   },
                 },
                 "删除"
-              ),
+              ) : null),
             ]);
           },
         },
@@ -666,13 +666,13 @@ export default {
     changeOpen(v) {
       if (v == "0") {
         this.permData.forEach((e) => {
-          e.expand = true;
+          this.$set(e, "expand", true);
           if (e.children && e.children.length > 0) {
             e.children.forEach((c) => {
-              c.expand = true;
+              this.$set(c, "expand", true);
               if (c.children && c.children.length > 0) {
-                c.children.forEach(function (b) {
-                  b.expand = true;
+                c.children.forEach((b) => {
+                  this.$set(b, "expand", true);
                 });
               }
             });
@@ -680,13 +680,13 @@ export default {
         });
       } else if (v == "1") {
         this.permData.forEach((e) => {
-          e.expand = false;
+          this.$set(e, "expand", false);
           if (e.children && e.children.length > 0) {
             e.children.forEach((c) => {
-              c.expand = false;
+              this.$set(c, "expand", false);
               if (c.children && c.children.length > 0) {
-                c.children.forEach(function (b) {
-                  b.expand = false;
+                c.children.forEach((b) => {
+                  this.$set(b, "expand", false);
                 });
               }
             });
@@ -694,13 +694,13 @@ export default {
         });
       } else if (v == "2") {
         this.permData.forEach((e) => {
-          e.expand = true;
+          this.$set(e, "expand", true);
           if (e.children && e.children.length > 0) {
             e.children.forEach((c) => {
-              c.expand = false;
+              this.$set(c, "expand", false);
               if (c.children && c.children.length > 0) {
-                c.children.forEach(function (b) {
-                  b.expand = false;
+                c.children.forEach((b) => {
+                  this.$set(b, "expand", false);
                 });
               }
             });
@@ -708,13 +708,13 @@ export default {
         });
       } else if (v == "3") {
         this.permData.forEach((e) => {
-          e.expand = true;
+          this.$set(e, "expand", true);
           if (e.children && e.children.length > 0) {
             e.children.forEach((c) => {
-              c.expand = true;
+              this.$set(c, "expand", true);
               if (c.children && c.children.length > 0) {
-                c.children.forEach(function (b) {
-                  b.expand = false;
+                c.children.forEach((b) => {
+                  this.$set(b, "expand", false);
                 });
               }
             });

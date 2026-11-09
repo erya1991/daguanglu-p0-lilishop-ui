@@ -1,10 +1,10 @@
 <template>
   <div class="search">
-      <Card>
-        <Tabs value="LIST" @on-click="paneChange">
-          <TabPane label="发送任务列表" name="LIST">
+      <Card><Alert v-if="$p0Integration" show-icon>本机 Mock 环境：可查看本地短信任务、模板与签名。外部短信服务未配置，发送、同步和渠道申请当前不可用；凭据参数在系统设置中维护。</Alert>
+        <Tabs :value="$route.name==='uat-sms-sign'?'SIGN':'LIST'" @on-click="paneChange">
+          <TabPane v-if="!$p0Integration || $nativeCan('GET','/manager/sms/sms')" label="发送任务列表" name="LIST">
             <Row class="operation" style="margin-bottom: 10px">
-              <Button @click="sendBatchSmsModal" type="primary">发送短信</Button>
+              <Button :disabled="!(!$p0Integration)" @click="sendBatchSmsModal" type="primary">发送短信</Button>
             </Row>
             <Table :loading="loading" border :columns="smsColumns" :data="smsData" ref="table">
             </Table>
@@ -14,10 +14,10 @@
                 :page-size-opts="[20, 50, 100]" size="small" show-total show-elevator show-sizer></Page>
             </Row>
           </TabPane>
-          <TabPane label="短信模板" name="TEMPLATE">
+          <TabPane v-if="!$p0Integration || $nativeCan('GET','/manager/sms/template/querySmsTemplatePage')" label="短信模板" name="TEMPLATE">
             <Row class="operation" style="margin-bottom: 10px">
-              <Button @click="addTemplate" type="primary">添加短信模板</Button>
-              <Button @click="syncTemplate" type="info">同步</Button>
+              <Button :disabled="!(!$p0Integration)" @click="addTemplate" type="primary">添加短信模板</Button>
+              <Button :disabled="!(!$p0Integration)" @click="syncTemplate" type="info">同步</Button>
             </Row>
             <Table :loading="loading" border :columns="templateColumns" :data="templateData" ref="table">
             </Table>
@@ -28,8 +28,8 @@
           </TabPane>
           <TabPane label="短信签名" name="SIGN">
             <Row class="operation" style="margin-bottom: 10px">
-              <Button @click="addSign" type="primary">添加短信签名</Button>
-              <Button @click="syncSign" type="info">同步</Button>
+              <Button :disabled="!(!$p0Integration)" @click="addSign" type="primary">添加短信签名</Button>
+              <Button :disabled="!(!$p0Integration)" @click="syncSign" type="info">同步</Button>
             </Row>
             <Table :loading="loading" border :columns="signColumns" :data="signData" ref="table">
               <template slot="signStatus" slot-scope="scope">
@@ -70,7 +70,7 @@
       </Form>
       <div slot="footer">
         <Button type="text" @click="templateModalVisible = false">取消</Button>
-        <Button type="primary" :loading="submitLoading" @click="templateSubmit">提交
+        <Button :disabled="!(!$p0Integration)" type="primary" :loading="submitLoading" @click="templateSubmit">提交
         </Button>
       </div>
     </Modal>
@@ -143,7 +143,7 @@
       </div>
       <div slot="footer">
         <Button type="text" @click="sendSmsModal = false">取消</Button>
-        <Button type="primary" :loading="submitLoading" @click="sendSms">发送</Button>
+        <Button :disabled="!(!$p0Integration)" type="primary" :loading="submitLoading" @click="sendSms">发送</Button>
       </div>
     </Modal>
   </div>
@@ -340,6 +340,7 @@ export default {
           width: 200,
           align: "center",
           render: (h, params) => {
+            if (this.$p0Integration) return h("span", "外部服务未配置");
             return h("div", [
               h(
                 "a",
@@ -409,6 +410,7 @@ export default {
           width: 200,
           align: "center",
           render: (h, params) => {
+            if (this.$p0Integration) return h("span", "外部服务未配置");
             return h("div", [
               h(
                 "a",
@@ -460,9 +462,9 @@ export default {
   methods: {
     // 初始化数据
     init() {
-      this.getSms();
+      if(this.$p0Integration && this.$route.name==='uat-sms-sign')this.getSmsSign();else this.getSms();
       //查询会员总数
-      this.getMemberNum();
+      if(!this.$p0Integration)this.getMemberNum();
     },
     //查询会员条数
     getMemberNum() {

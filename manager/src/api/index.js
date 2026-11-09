@@ -9,12 +9,13 @@ import {
   putRequestWithNoForm,
   postRequestWithNoTokenData,
   postRequestWithNoForm,
-  managerUrl, commonUrl
+  managerUrl
 } from "@/libs/axios";
 
 
 import {commonApiPath} from "@/libs/api-address";
 import {managerSession} from '@/libs/manager-session';
+import {accountPayload} from '@/libs/native-access-core.cjs';
 
 // Common paths are mapped individually; no official API fallback in development.
 
@@ -140,7 +141,7 @@ export const getAllUserData = (params) => {
 
 // 添加用户
 export const addUser = (params) => {
-  return postRequest("/passport/user/register", params);
+  return postRequest("/passport/user/register", accountPayload(params,true));
 };
 // 编辑管理员自身
 export const editUser = (params) => {
@@ -148,7 +149,7 @@ export const editUser = (params) => {
 };
 // 编辑用户
 export const editOtherUser = (params) => {
-  return putRequest("/passport/user/admin/edit", params);
+  return putRequest("/passport/user/admin/edit", accountPayload(params,false));
 };
 // 启用用户
 export const enableUser = (id, params) => {
@@ -187,7 +188,7 @@ export const addDepartment = (params) => {
 };
 // 编辑部门
 export const editDepartment = (ids, params) => {
-  return putRequest(`/permission/department/${ids} `, params);
+  return putRequest(`/permission/department/${ids}`, params);
 };
 // 删除部门
 export const deleteDepartment = (ids, params) => {
@@ -463,7 +464,7 @@ export const updateRegion = (id, params) => {
 };
 // 添加地区
 export const addRegion = (params) => {
-  return postRequest(`/setting/region`, params);
+  return postRequest(`/setting/region/save`, params);
 };
 
 // 通过id获取子地区
@@ -548,22 +549,22 @@ export const getHotWordsHistory = (params) => {
 
 // 获取文件目录列表
 export const getFileDirectory = () => {
-  return getRequest(commonUrl+`/common/resource/fileDirectory`);
+  return getRequest(`/common/fileDirectory`);
 };
 
 // 添加文件目录
 export const addFileDirectory = (params) => {
-  return postRequestWithNoForm(commonUrl+`/common/resource/fileDirectory`,params);
+  return postRequestWithNoForm(`/common/fileDirectory`,params);
 };
 
 
 // 修改文件目录
 export const updateFileDirectory = (params) => {
-  return putRequestWithNoForm(commonUrl+`/common/resource/fileDirectory`,params);
+  return putRequestWithNoForm(`/common/fileDirectory`,params);
 };
 
 
 // 删除文件目录
 export const delFileDirectory = (id) => {
-  return deleteRequest(commonUrl+`/common/resource/fileDirectory/${id}`);
+  return deleteRequest(`/common/fileDirectory/${id}`);
 };
