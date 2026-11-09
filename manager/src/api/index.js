@@ -140,7 +140,7 @@ export const getAllUserData = (params) => {
 
 // 添加用户
 export const addUser = (params) => {
-  return postRequest("/passport/user", params);
+  return postRequest("/passport/user/register", params);
 };
 // 编辑管理员自身
 export const editUser = (params) => {
