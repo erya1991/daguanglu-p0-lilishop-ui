@@ -1,0 +1,1 @@
+<template><FundsPage title="资金异常" description="保留原资金与本地处理异常。查询、恢复和对账复核分别鉴权。" kind="PAYMENT" base="exceptions" exceptions/></template><script>import FundsPage from './components/FundsPage.vue';export default{components:{FundsPage}};</script>

@@ -1,0 +1,5 @@
+<template><Alert v-if="pending" type="warning" show-icon><strong>本次提交结果待核实</strong><p>保留原操作标识，先查询原结果。刷新页面不会生成新号重提。</p><p v-if="error">{{error}}</p><div class="actions"><Button :loading="busy" @click="run('query')">回查原操作</Button><Button :disabled="busy" @click="run('retry')">按原内容重试</Button><Button :disabled="busy" @click="confirmAbandon">核实并结束未提交意图</Button></div></Alert></template>
+<script>
+import {s45Commands} from '@/api/stage45';
+export default{props:{name:{type:String,required:true},revision:Number},data(){return{busy:false,error:'',version:0}},computed:{pending(){this.version;this.revision;return s45Commands.pending(this.name)}},methods:{async run(action){this.busy=true;this.error='';try{const result=await s45Commands[action](this.name);this.$emit('recovered',result)}catch(e){this.error=e.message;if(e.code==='OPERATION_ABANDONED')this.$emit('recovered',null)}finally{this.version++;this.busy=false}},confirmAbandon(){this.$Modal.confirm({title:'结束尚未提交的原意图',content:'服务端将先核对原操作。若已提交，返回原结果；仅未提交的原意图会被结束。',onOk:()=>this.run('abandon')})}}};
+</script>

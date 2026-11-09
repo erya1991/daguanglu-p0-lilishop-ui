@@ -1,0 +1,1 @@
+<template><FundsPage title="回退记录" description="核对每批必要回退与原分账请求；足额成功后才可进入退款。" kind="RETURN" base="returns" /></template><script>import FundsPage from './components/FundsPage.vue';export default{components:{FundsPage}};</script>

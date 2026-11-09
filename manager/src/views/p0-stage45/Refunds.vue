@@ -1,0 +1,1 @@
+<template><FundsPage title="退款记录" description="商品、费用及迟到付款义务分别留存；受理与成功分别显示，未知先查询原请求。" kind="REFUND" base="refunds" /></template><script>import FundsPage from './components/FundsPage.vue';export default{components:{FundsPage}};</script>

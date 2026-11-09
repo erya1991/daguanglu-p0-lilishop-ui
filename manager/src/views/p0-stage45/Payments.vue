@@ -1,0 +1,1 @@
+<template><FundsPage title="支付记录" description="按原 Store Order 查询可信实付、支付状态与资金摘要；每行是一笔店铺子交易；所属合单总额仅供父级核对，不能按行累加。" kind="PAYMENT" base="payments" /></template><script>import FundsPage from './components/FundsPage.vue';export default{components:{FundsPage}};</script>

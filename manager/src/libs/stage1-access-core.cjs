@@ -30,11 +30,14 @@ function menus(rows, info) {
     children.push({...item, children: []});
   });
   visit(rows);
-  return children.length ? [{id:'s1-root',name:'s1-root',title:'商城管理',level:0,children:[{id:'s1-management',name:'s1-management',title:'Stage1 商城',path:'/s1',frontRoute:'Main',level:1,children}]}] : [];
+  const groups=children.length?[{id:'s1-management',name:'s1-management',title:'Stage1 商城',path:'/s1',frontRoute:'Main',level:1,children}]:[];
+  groups.push(...require('./stage3-access-core.cjs').menus(rows,info));
+  groups.push(...require('./stage45-access-core.cjs').menus(rows,info));
+  return groups.length?[{id:'s1-root',name:'s1-root',title:'商城管理',level:0,children:groups}]:[];
 }
 function canRoute(info, rows, route) {
   if (!info || !info.stage1) return false;
   if (route.name === 'home_index') return has(info,'SELF_READ');
-  const valid = menus(rows, info), parent = (require('../router/stage1-details.cjs').parent(route)||require('../router/stage2-ui.cjs').parent(route));return valid.some(root => root.children.some(group => group.children.some(item => item.name === (parent || route.name) && route.meta && route.meta.stage0MenuId === item.id)));
+  const valid = menus(rows, info), parent = (require('../router/stage1-details.cjs').parent(route)||require('../router/stage2-ui.cjs').parent(route)||require('./stage3-access-core.cjs').parent(route)||require('./stage45-access-core.cjs').parent(route));return valid.some(root => root.children.some(group => group.children.some(item => item.name === (parent || route.name) && route.meta && route.meta.stage0MenuId === item.id)));
 }
 module.exports = {pages,normalize,has,menus,canRoute};

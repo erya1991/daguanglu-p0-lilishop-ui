@@ -1,0 +1,1 @@
+<template><FundsPage title="分账记录" description="按原支付与历史接收明细核对分账成功，再独立判断完结与解冻。" kind="SHARE" base="sharing" /></template><script>import FundsPage from './components/FundsPage.vue';export default{components:{FundsPage}};</script>

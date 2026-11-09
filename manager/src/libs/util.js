@@ -137,6 +137,8 @@ util.initRouter = function(vm) {
         const stage0Routes = [];
         util.initAllMenuData(stage0Routes, menuData);
         if (typeof BASE !== 'undefined' && BASE.stage2Enabled === true && BASE.stage2WebUiEnabled === true) for (const group of stage0Routes) { const details=require('@/router/stage2-ui.cjs').routes(group.children||[]); for(const detail of details)detail.component=lazyLoading(detail.frontRoute); if(group.children)group.children.push(...details); }
+        if (typeof BASE !== 'undefined' && BASE.stage45Enabled === true) for (const group of stage0Routes) { const details=require('@/libs/stage45-access-core.cjs').routes(group.children||[]); for(const detail of details)detail.component=lazyLoading(detail.frontRoute); if(group.children)group.children.push(...details); }
+        if (typeof BASE !== 'undefined' && BASE.stage3Enabled === true) for (const group of stage0Routes) { const details=require('@/libs/stage3-access-core.cjs').routes(group.children||[]); for(const detail of details)detail.component=lazyLoading(detail.frontRoute); if(group.children)group.children.push(...details); }
         if (usabilityEnabled) for (const group of stage0Routes) {
           const details = require('@/router/stage1-details.cjs').routes(group.children || []);
           for (const detail of details) detail.component = lazyLoading(detail.frontRoute);
