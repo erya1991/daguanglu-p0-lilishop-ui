@@ -8,6 +8,7 @@
     "serve": "node scripts/serve-local.cjs",
     "prebuild": "node scripts/apply-compression-hash-fix.cjs",
     "build": "vue-cli-service build",
+    "build:wechat-test": "node scripts/build-wechat-test.cjs",
     "dev": "node scripts/serve-local.cjs"
   },
   "engines": {
