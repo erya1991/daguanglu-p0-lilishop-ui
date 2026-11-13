@@ -13,7 +13,10 @@
       <template slot="state" slot-scope="{row}">{{stateText(row.status)}}</template>
       <template slot="binding" slot-scope="{row}">{{bindingText(row.bindingStatus)}}</template>
       <template slot="merchant" slot-scope="{row}">{{({RELATED:'有关联',NONE:'无关联',UNVERIFIED:'待核实'})[row.merchantAssociation] || '无查看权限'}}</template>
-      <template slot="actions" slot-scope="{row}"><Button size="small" @click="showDetail(row.id)">查看详情</Button></template>
+      <template slot="actions" slot-scope="{row}">
+        <Button size="small" @click="showDetail(row.id)">查看详情</Button>
+        <Button v-if="can('resident.manage') && ['ACTIVE','DISABLED'].includes(row.status)" size="small" :disabled="blocked" @click="changeStatus(row)">{{row.status === 'ACTIVE' ? '停用' : '启用'}}</Button>
+      </template>
     </Table>
     <Page :total="total" :current="page" :page-size="size" show-total @on-change="changePage"/>
     <Drawer v-model="visible" title="住户账号详情" width="600" @on-close="closeDetail">
@@ -27,7 +30,6 @@
         <section><h3>账号操作记录</h3><p v-if="!selected.audit.length">暂无启停记录</p><p v-for="(item,index) in selected.audit" :key="index">{{item.action === 'resident.disable' ? '停用' : '启用'}} · {{item.operatorName || item.operatorId}} · {{item.createdAt}} · {{item.reason}}</p></section>
         <section v-if="canOrders"><h3>商城订单</h3><Button size="small" @click="loadRelated('orders',1)">查看订单</Button><div v-for="item in orders" :key="item.id"><Button type="text" @click="openRelated('/s3/orders/',item.id)">{{item.orderSn || item.id}}</Button> {{item.storeName || ''}} · {{item.createdAt}}</div><Page v-if="orderTotal>20" :total="orderTotal" :page-size="20" @on-change="loadRelated('orders',$event)"/></section>
         <section v-if="canAftersales"><h3>售后记录</h3><Button size="small" @click="loadRelated('aftersales',1)">查看售后</Button><div v-for="item in aftersales" :key="item.id"><Button type="text" @click="openRelated('/s45/aftersales/',item.id)">{{item.sn || item.id}}</Button> {{item.type}} · {{item.state}}</div><Page v-if="saleTotal>20" :total="saleTotal" :page-size="20" @on-change="loadRelated('aftersales',$event)"/></section>
-        <Button v-if="can('resident.manage') && selected.status !== 'UNKNOWN'" :disabled="blocked" @click="changeStatus">{{selected.status === 'ACTIVE' ? '停用会员' : '启用会员'}}</Button>
       </div>
     </Drawer>
   </Card>
@@ -44,7 +46,7 @@ export default {
   data:()=>({memberId:'',nickname:'',mobile:'',status:'',visible:false,selected:null,detailTicket:0,orders:[],aftersales:[],orderTotal:0,saleTotal:0,
     columns:[{title:'会员编号',key:'id',minWidth:175},{title:'昵称',key:'nickname',minWidth:150},
       {title:'手机号',key:'mobileMasked',minWidth:140},{title:'住户身份',slot:'binding',width:130},
-      {title:'账号状态',slot:'state',width:110},{title:'关联商户',slot:'merchant',width:120},{title:'创建时间',key:'createdAt',minWidth:180},{title:'操作',slot:'actions',width:110}]}),
+      {title:'账号状态',slot:'state',width:110},{title:'关联商户',slot:'merchant',width:120},{title:'创建时间',key:'createdAt',minWidth:180},{title:'操作',slot:'actions',width:180}]}),
   computed:{canOrders(){const s=managerAccess.state.info?.stage1?.stage3;return !!s&&Array.isArray(s.permissions)&&s.permissions.includes('order.read');},canAftersales(){const s=managerAccess.state.info?.stage1?.stage45;return !!s&&Array.isArray(s.permissions)&&s.permissions.includes('aftersale.read');}},
   mounted(){this.reload();},
   methods:{
@@ -58,11 +60,12 @@ export default {
     closeDetail(){this.detailTicket++;this.selected=null;this.orders=[];this.aftersales=[];},
     async loadRelated(kind,number){const selected=this.selected,ticket=this.detailTicket;if(!selected)return;try{const value=await this.read('/residents/'+selected.id+'/'+kind,{pageNumber:number,pageSize:20});if(ticket!==this.detailTicket||!this.selected||this.selected.id!==selected.id)return;if(kind==='orders'){this.orders=value.records;this.orderTotal=value.total;}else{this.aftersales=value.records;this.saleTotal=value.total;}}catch(e){if(ticket===this.detailTicket)this.error=e.message;}},
     openRelated(path,id){this.visible=false;this.$router.push(path+id);},
-    async changeStatus(){const current=this.selected;if(!current||this.blocked)return;try{
-      const impact=await this.read('/residents/'+current.id+'/impact');if(!this.selected||this.selected.id!==current.id)return;
-      const enabled=impact.status==='ACTIVE';const message='停用的是会员账号，同一会员关联的住户及商户身份均可能受影响；店主可能无法处理已有订单。'+(impact.merchantAssociated?' 此会员存在商户关联。':'');
-      const result=await this.command('/residents/'+current.id+(enabled?'/disable':'/enable'),enabled?'停用会员':'启用会员',{version:impact.version},enabled?message:'启用后须重新登录，不会恢复旧会话或被撤销的店铺授权。');
-      if(result){await this.reload();await this.showDetail(current.id);}
+    async changeStatus(current){if(!current||this.blocked)return;const source=managerSession.snapshot();try{
+      const impact=await this.read('/residents/'+current.id+'/impact');if(!managerSession.sameSession(source))return;
+      if(impact.status!==current.status){await this.reload();this.error='账号状态已变化，请重新确认。';return;}
+      const enabled=impact.status==='ACTIVE';const target='会员编号：'+current.id+'。';const message=target+'停用的是会员账号，同一会员关联的住户及商户身份均可能受影响；店主可能无法处理已有订单。'+(impact.merchantAssociated?' 此会员存在商户关联。':'');
+      const result=await this.command('/residents/'+current.id+(enabled?'/disable':'/enable'),enabled?'停用会员':'启用会员',{version:impact.version},enabled?message:target+'启用后须重新登录，不会恢复旧会话或被撤销的店铺授权。');
+      if(result){await this.reload();if(this.visible&&this.selected&&this.selected.id===current.id)await this.showDetail(current.id);}
     }catch(e){this.error=e.message;}}
   }
 };
