@@ -6,9 +6,10 @@ const pages = {
   receivers: ['channel.receiver', 'p0-stage1/receivers'], 'commission-rules': ['rule.read', 'p0-stage1/commission-rules'],
   categories: ['catalog.configure', 'goods/goods-manage/category'], units: ['catalog.configure', 'goods-unit/index'],
   reviews: ['goods.review', 'goods/goods-info/goodsApply'], goods: ['goods.read', 'goods/goods-info/goods'],
-  fulfillment: ['fulfillment.inspect', 'p0-stage1/fulfillment']
+  fulfillment: ['fulfillment.inspect', 'p0-stage1/fulfillment'],
+  residents: ['resident.read', 'p0-stage1/residents']
 };
-const actions = new Set(['admission.review','store.read','store.supervise','agreement.read','agreement.write','rule.read','rule.write','channel.configure','channel.onboard','channel.receiver','catalog.configure','goods.read','goods.review','goods.supervise','fulfillment.inspect']);
+const actions = new Set(['admission.review','store.read','store.supervise','agreement.read','agreement.write','rule.read','rule.write','channel.configure','channel.onboard','channel.receiver','catalog.configure','goods.read','goods.review','goods.supervise','fulfillment.inspect','resident.read','resident.manage']);
 function normalize(result) {
   const scope = result && result.stage1;
   if (!scope || result.sessionProtocol !== 'STAGE0_SESSION' || result.isSuper !== false || typeof result.id !== 'string' || !/^[1-9][0-9]{0,18}$/.test(result.id)
