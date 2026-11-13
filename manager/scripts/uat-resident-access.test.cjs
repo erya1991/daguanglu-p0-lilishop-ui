@@ -18,3 +18,8 @@ test('read permission does not imply member status management',()=>{
   assert.equal(stage1.has(info(['resident.read']),'resident.manage'),false);
   assert.equal(stage1.has(info(['resident.read','resident.manage']),'resident.manage'),true);
 });
+test('resident operation context accepts the new page without opening arbitrary routes',()=>{
+  const list=require('../src/views/p0-stage1/usability/list-state.cjs');
+  assert.equal(list.parent('/s1/residents'),'/s1/residents');
+  assert.throws(()=>list.parent('/s1/unapproved'));
+});
