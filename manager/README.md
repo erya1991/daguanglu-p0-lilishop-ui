@@ -14,6 +14,20 @@ npm run build:wechat-test -- --output /srv/dgl-web/manager-001
 
 正常登录和页面权限检查按当前代码执行，不按旧版本的行号修改来跳过认证。
 
+### 菜单浏览器回归（Windows / Linux）
+
+在 `manager` 目录使用 Node 22 和项目锁定依赖执行：
+
+```sh
+yarn install --frozen-lockfile --non-interactive --ignore-engines
+npm run test:menu:install
+npm run test:menu
+```
+
+Linux 首次使用且缺少浏览器系统库时，由有权限的部署人员执行 `yarn playwright install --with-deps chromium`，替代上面的浏览器安装步骤。使用项目固定的 Playwright 和配套 Chromium，不需要个人 Codex 缓存或系统 Chrome 路径。安装方法见 [Playwright 官方浏览器说明](https://playwright.dev/docs/browsers)。
+
+这三项浏览器检查验证菜单折叠、详情页父级定位和撤权后的菜单更新，不连接实际 API，也不代替公司环境的登录和商城流程测试。
+
 #### main-parts  头部，左侧所有内容
 
 #### decoration  楼层装修模块

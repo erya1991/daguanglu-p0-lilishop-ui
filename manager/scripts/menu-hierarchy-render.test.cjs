@@ -1,9 +1,9 @@
 'use strict';
 const {test,before,after}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
 const compiler=require('vue-template-compiler');
-const {chromium}=require('C:/Users/65410/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
+const {chromium}=require('playwright');
 const root=path.resolve(__dirname,'..'),sfc=compiler.parseComponent(fs.readFileSync(path.join(root,'src/views/main-parts/shrinkable-menu/shrinkable-menu.vue'),'utf8'));
-let browser;before(async()=>{browser=await chromium.launch({executablePath:'C:/Program Files/Google/Chrome/Application/chrome.exe',headless:true,args:['--disable-background-networking','--no-first-run']});});after(async()=>browser?.close());
+let browser;before(async()=>{browser=await chromium.launch({headless:true,args:['--disable-background-networking','--no-first-run']});});after(async()=>browser?.close());
 async function fixture(t,route={name:'home_index',meta:{}},limited=false){
  const context=await browser.newContext();t.after(()=>context.close());await context.route('**/*',r=>r.abort());const page=await context.newPage();await page.setContent('<div id="test"></div>');
  await page.addScriptTag({path:path.join(root,'node_modules/vue/dist/vue.js')});await page.addScriptTag({path:path.join(root,'node_modules/view-design/dist/iview.js')});await page.addStyleTag({path:path.join(root,'node_modules/view-design/dist/styles/iview.css')});
